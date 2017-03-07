@@ -15,14 +15,24 @@ module.exports = function (box, alias, wait) {
   }
   function pull (wait) {
     box.pull(wait).forEach(function (line) {
-      var parts = /^([^\/]+)\/([0-9]+)\/([^\/]+)\/([\s\S]*)$/.exec(msg);
-      if (parts && parts[3] in handlers)
-        return handlers[parts[3]](parts[1], parts[4], function (data) {
-          box.send(parts[1], parts[2]+"/"+data);
-        });
-      var parts = /^([0-9]+)\/([\s\S]*)$/.exec(msg);
-      if (parts && parts[1] in kontinuations)
-        return kontinuations[parts[1]](parts[2]);
+      var parts = /^([^\/]+)\/([0-9]+)\/([^\/]+)\/([\s\S]*)$/.exec(line);
+      if (parts) {
+        if (parts[3] in  handlers) {
+          return handlers[parts[3]](parts[1], parts[4], function (data) {
+            box.send(parts[1], parts[2]+"/"+data);
+          });
+        }
+        throw new Error("No handler for "+parts[3]+" from: "+line);
+      }
+      var parts = /^([0-9]+)\/([\s\S]*)$/.exec(line);
+      if (parts) {
+        if (parts[1] in kontinuations) {
+          var kontinuation = kontinuations[parts[1]];
+          delete kontinuations[parts[1]];
+          return kontinuation(parts[2]);
+        }
+        throw new Error("No kontinuations for "+parts[1]+" from: "+line);
+      }
       throw new Error("Cannot handle line: "+line);
     });
   }
@@ -30,12 +40,14 @@ module.exports = function (box, alias, wait) {
     pull(0);
     setTimeout(loop, wait);
   }
-  loop();
-  if ("process" in global)
+  // No immediate pulling to let
+  // the time to install handlers 
+  setTimeout(loop, wait);
+  if ("process" in global) {
     process.on("SIGINT", function () {
-      console.log("Stop pulling");
       loop = function () {};
     });
+  }
   return {
     async: {
       register: register,

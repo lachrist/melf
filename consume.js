@@ -1,7 +1,6 @@
 
 var Fs = require("fs");
 var Path = require("path");
-var Sleep = require("sleep");
 
 // Previously based on renameSync:
 // try {

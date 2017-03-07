@@ -1,10 +1,14 @@
 
 var Url = require("url");
+var Consume = require("./consume.js");
+var Produce = require("./produce.js");
 
 module.exports = function (boxdir, address) {
   var begin = Url.parse(address).pathname;
   if (begin[begin.length-1] !== "/")
     begin = begin+"/";
+  if (begin[0] !== "/")
+    begin = "/"+begin;
   var consumers = {};
   return function (req, res) {
     if (req.method !== "POST" || !req.url.startsWith(begin))
@@ -14,7 +18,7 @@ module.exports = function (boxdir, address) {
     var send = /^send\/([^\/]+)$/.exec(action);
     if (pull) {
       if (!(pull[1] in consumers))
-        consumers[pull[1]] = Consume(options.boxdir+"/"+pull[1]);
+        consumers[pull[1]] = Consume(boxdir+"/"+pull[1]);
       setTimeout(function () {
         res.end(consumers[pull[1]]());
       }, Number(pull[2]));
@@ -22,7 +26,7 @@ module.exports = function (boxdir, address) {
       var line = "";
       req.on("data", function (chunk) { line += chunk });
       return req.on("end", function () {
-        Produce(options.boxdir+"/"+send[1], line);
+        Produce(boxdir+"/"+send[1], line);
         res.end();
       });
     } else {
@@ -30,5 +34,4 @@ module.exports = function (boxdir, address) {
     }
     return true;
   }
-
 };

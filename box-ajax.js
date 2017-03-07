@@ -7,12 +7,13 @@ module.exports = function (address, alias) {
   address = (new URL(address, location)).href;
   if (address[address.length-1] !== "/")
     address = address+"/";
+  var cut = Cut();
   return {
     pull: function (wait) {
       var req = new XMLHttpRequest();
       req.open("POST", address+"pull/"+alias+"/"+wait, false);
       req.send();
-      return Cut(req.responseText);
+      return cut(req.responseText);
     },
     send: function (recipient, msg) {
       var req = new XMLHttpRequest();

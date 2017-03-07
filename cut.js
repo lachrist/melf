@@ -1,6 +1,6 @@
 
 function unescape (str) {
-  return str.replace("\\n", "\n").replace(/\\+n/g, function (match) { return match.subtring(1) });
+  return str.replace("\\n", "\n").replace(/\\+n/g, function (match) { return match.substring(1) });
 }
 
 module.exports = function () {

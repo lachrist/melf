@@ -12,7 +12,7 @@ function escape (str) {
 }
 
 module.exports = function (path, line) {
-  console.log(line+" >> "+Path.basename(path));
+  console.log(Path.basename(path)+" << "+line);
   line = escape(line);
   if (!/^[\x00-\x7F]*$/.test(line))
     throw new Error("Box can only handle ASCII strings, got: "+line);
