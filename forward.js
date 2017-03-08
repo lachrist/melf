@@ -3,8 +3,8 @@ var Url = require("url");
 var Consume = require("./consume.js");
 var Produce = require("./produce.js");
 
-module.exports = function (boxdir, address) {
-  var begin = Url.parse(address).pathname;
+module.exports = function (options) {
+  var begin = Url.parse(options.channel).pathname;
   if (begin[begin.length-1] !== "/")
     begin = begin+"/";
   if (begin[0] !== "/")
@@ -18,7 +18,7 @@ module.exports = function (boxdir, address) {
     var send = /^send\/([^\/]+)$/.exec(action);
     if (pull) {
       if (!(pull[1] in consumers))
-        consumers[pull[1]] = Consume(boxdir+"/"+pull[1]);
+        consumers[pull[1]] = Consume(options.boxdir+"/"+pull[1]);
       setTimeout(function () {
         res.end(consumers[pull[1]]());
       }, Number(pull[2]));
@@ -26,7 +26,7 @@ module.exports = function (boxdir, address) {
       var line = "";
       req.on("data", function (chunk) { line += chunk });
       return req.on("end", function () {
-        Produce(boxdir+"/"+send[1], line);
+        Produce(options.boxdir+"/"+send[1], line);
         res.end();
       });
     } else {

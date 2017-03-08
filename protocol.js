@@ -41,14 +41,13 @@ module.exports = function (box, alias, wait) {
     setTimeout(loop, wait);
   }
   // No immediate pulling to let
-  // the time to install handlers 
+  // time for installing handlers
   setTimeout(loop, wait);
-  if ("process" in global) {
-    process.on("SIGINT", function () {
-      loop = function () {};
-    });
-  }
   return {
+    close: function () {
+      loop = function () {};
+    },
+    alias: alias,
     async: {
       register: register,
       trigger: trigger
