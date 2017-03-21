@@ -1,5 +1,5 @@
 
-module.exports = function (box, alias, wait) {
+module.exports = function (box, wait) {
   var counter = 0;
   var kontinuations = {};
   var handlers = {};
@@ -11,29 +11,27 @@ module.exports = function (box, alias, wait) {
   function trigger (recipient, event, data, kontinuation) {
     var id = counter++;
     kontinuations[id] = kontinuation;
-    box.send(recipient, alias+"/"+id+"/"+event+"/"+data);
+    box.send(recipient, [box.alias, id, event, data]);
   }
   function pull (wait) {
-    box.pull(wait).forEach(function (line) {
-      var parts = /^([^\/]+)\/([0-9]+)\/([^\/]+)\/([\s\S]*)$/.exec(line);
-      if (parts) {
-        if (parts[3] in  handlers) {
-          return handlers[parts[3]](parts[1], parts[4], function (data) {
-            box.send(parts[1], parts[2]+"/"+data);
+    box.pull(wait).forEach(function (data) {
+      if (data.length === 2) {
+        if (data[0] in kontinuations) {
+          var kontinuation = kontinuations[data[0]];
+          delete kontinuations[data[0]];
+          return kontinuation(data[1]);
+        }
+        throw new Error("No kontinuations for "+data[0]+" from: "+JSON.stringify(data));
+      }
+      if (data.length === 4) {
+        if (data[2] in handlers) {
+          return handlers[data[2]](data[0], data[3], function (inner) {
+            box.send(data[0], [data[1], inner]);
           });
         }
-        throw new Error("No handler for "+parts[3]+" from: "+line);
+        throw new Error("No handler for "+data[2]+" from: "+JSON.stringify(data));
       }
-      var parts = /^([0-9]+)\/([\s\S]*)$/.exec(line);
-      if (parts) {
-        if (parts[1] in kontinuations) {
-          var kontinuation = kontinuations[parts[1]];
-          delete kontinuations[parts[1]];
-          return kontinuation(parts[2]);
-        }
-        throw new Error("No kontinuations for "+parts[1]+" from: "+line);
-      }
-      throw new Error("Cannot handle line: "+line);
+      throw new Error("Cannot handle data: "+JSON.stringify(data));
     });
   }
   function loop () {
@@ -47,7 +45,7 @@ module.exports = function (box, alias, wait) {
     close: function () {
       loop = function () {};
     },
-    alias: alias,
+    alias: box.alias,
     async: {
       register: register,
       trigger: trigger

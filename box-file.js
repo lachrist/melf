@@ -1,25 +1,37 @@
 
 var Fs = require("fs");
-var Path = require("path");
 var Sleep = require("sleep");
+var Path = require("path")
 
-var Cut = require("./cut.js");
 var Produce = require("./produce.js");
 var Consume = require("./consume.js");
 
 module.exports = function (boxdir, alias) {
   boxdir = Path.resolve(boxdir);
-  var path = boxdir+"/"+alias;
+  if (typeof alias === "function") {
+    while (true) {
+      try {
+        var path = boxdir+"/"+alias();
+        Fs.writeFileSync(path, "", {flag:"wx"});
+        break;
+      } catch (error) {
+        if (error.code !== "EEXIST")
+          throw error;
+      }
+    }
+  } else {
+    var path = boxdir+"/"+alias;
+  }
   var consume = Consume(path);
-  var cut = Cut();
   return {
+    alias: Path.basename(path),
     pull: function (wait) {
-      if (Number(wait))
-        Sleep.msleep(Number(wait));
-      return cut(consume());
+      if (wait)
+        Sleep.msleep(wait);
+      return consume().map(JSON.parse);
     },
-    send: function (recipient, msg) {
-      Produce(boxdir+"/"+recipient, msg);
+    send: function (recipient, data) {
+      Produce(boxdir+"/"+recipient, JSON.stringify(data));
     },
   };
 };
