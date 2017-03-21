@@ -13,26 +13,26 @@ var Fs = require("fs");
 var Path = require("path");
 
 var counter = 0;
+var PIPE_BUF = 512;
 
 module.exports = function (path, line) {
   console.log(Path.basename(path)+" << "+line);
   var buffer = Buffer.from(line+"\n", "utf8");
-  if (buffer.length < 512)
+  if (buffer.length < PIPE_BUF)
     return Fs.appendFileSync(path, buffer);
   truncate(path, line, process.pid+"#"+(counter++)+"|");
 };
 
 function truncate (path, line, prefix) {
   var begin = 0;
-  while (begin < text.length) {
-    var size = 450;
+  while (begin < line.length) {
+    var size = 500;
     do {
-      var buffer = Buffer.from(prefix+text.substring(begin, size)+"\n", "utf8");
-      size -= 100;
-    } while (buffer.length > 512);
+      size -= 50;
+      var buffer = Buffer.from(prefix+line.substring(begin, begin+size)+"\n", "utf8");
+    } while (buffer.length > PIPE_BUF);
     Fs.appendFileSync(path, buffer);
     begin += size;
   }
-  Fs.appendFileSync(path, prefix+"\n", {encoding:"utf8"});
-  return buffers;
+  Fs.appendFileSync(path, Buffer.from(prefix+"\n", "utf8"));
 };

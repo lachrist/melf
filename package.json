@@ -1,6 +1,6 @@
 { "name" : "melf"
 , "description" : "Pull-based (a)synchronous communication between JavaScript processes"
-, "version" : "0.0.2"
+, "version" : "0.0.3"
 , "author" : {"name":"Laurent Christophe", "email":"lachrist@vub.ac.be"}
 , "repository": "lachrist/melf"
 , "homepage": "http://github.com/lachrist/melf"
