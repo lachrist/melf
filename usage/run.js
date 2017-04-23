@@ -1,34 +1,24 @@
 
-var Fs = require("fs");
+var Ws = require("ws");
 var Http = require("http");
 var ChildProcess = require("child_process");
 var Browserify = require("browserify");
-var Forward = require("melf/forward");
+var MelfServer = require("melf/server");
 
-// Cleanup previous communications
-Fs.readdirSync(__dirname+"/boxdir").forEach(function (name) {
-  Fs.unlinkSync(__dirname+"/boxdir/"+name);
-});
+var child = ChildProcess.fork(__dirname+"/calculator.js", {stdio: "inherit"});
 
-// Startup Spirou
-var spirou = ChildProcess.fork(__dirname+"/spirou.js", {stdio:"inherit"});
-
-// Server Fantasio on port 8080
-Browserify(__dirname+"/fantasio.js").bundle(function (error, bundle) {
+Browserify(__dirname+"/gui.js").bundle(function (error, bundle) {
   if (error)
     throw error;
-  var forward = Forward({
-    boxdir: __dirname+"/boxdir",
-    channel: "melf-channel"
-  });
-  Http.createServer(function (req, res) {
-    if (!forward(req, res)) {
-      res.writeHead(200);
-      res.end([
-        "<!DOCTYPE html><html><head><meta charset=\"utf-8\">",
-        "<script>"+bundle+"</script>",
-        "</head><body></body></html>"
-      ].join("\n"));
-    }
+  var mserver = MelfServer({splitter: "an-unused-url-path"});
+  mserver.onconnect = function (alias) { console.log(alias+" connected") };
+  mserver.ondisconnect = function (alias) { console.log(alias+" disconnected") };
+  var server = Http.createServer(function (req, res) {
+    msert.hijack.request(req, res) || res.end([
+      "<!DOCTYPE html><html><head><meta charset=\"utf-8\">",
+      "<script>"+bundle+"</script>",
+      "</head><body>Best GUI evaa!</body></html>"
+    ].join("\n"));
   }).listen(8080);
+  new Ws.Server({server:server}).on("connection", mserver.hijack.socket);
 });

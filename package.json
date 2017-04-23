@@ -1,11 +1,23 @@
 { "name" : "melf"
-, "description" : "Pull-based (a)synchronous communication between JavaScript processes"
-, "version" : "0.0.3"
-, "author" : {"name":"Laurent Christophe", "email":"lachrist@vub.ac.be"}
+, "description" : "API for (a)synchronous communication between JavaScript processes"
+, "version" : "0.0.4"
+, "author" :
+  { "name" : "Laurent Christophe"
+  , "email" : "lachrist@vub.ac.be"
+  }
 , "repository": "lachrist/melf"
 , "homepage": "http://github.com/lachrist/melf"
 , "license" : "MIT"
-, "dependencies": {"sleep":"*"}
+, "dependencies":
+  { "request-uniform" : "*"
+  , "ws" : "*"
+  }
 , "main": "main.js"
-, "keywords" : ["JavaScript", "Processes", "Communication", "Pull-based", "Synchronous", "Asynchronous"]
+, "keywords" :
+  [ "JavaScript"
+  , "Processes"
+  , "Communication"
+  , "Synchronous"
+  , "Asynchronous"
+  ]
 }
