@@ -1,33 +1,11 @@
 
-function log (debug, send) {
-  return function (recipient, event) {
-    console.log(pad(debug, 5)+" >> "+pad(recipient, 5)+": "+JSON.stringify(event));
-    return send(recipient, event);
-  }
-}
-
-function pad (string, size) {
-  if (string.length >= size)
-    return string.substring(0, size);
-  while (string.length < size)
-    string += " ";
-  return string
-}
-
-module.exports = function (debug, format, send) {
-  send = debug ? log(debug, send) : send;
-  format = format || {
-    parse: function (x) { return x },
-    stringify: function (x) { return x }
-  };
+module.exports = function (format, send) {
   var handlers = {};
   var callbacks = {};
   return {
     register: function (name, handler) { handlers[name] = handler },
     unregister: function (name) { delete handlers[name] },
     receive: function (origin, event) {
-      if (debug)
-        console.log(pad(debug, 5)+" << "+pad(origin, 5)+": "+JSON.stringify(event));
       if ("token" in event && "name" in event) {
         if (event.name in handlers) {
           handlers[event.name](origin, format.parse(event.data), function (error, data) {

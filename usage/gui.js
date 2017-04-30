@@ -1,9 +1,13 @@
-var Melf = require("melf/browser");
+var MelfBrowser = require("melf/browser");
 
-var melf = Melf({
+var melf = MelfBrowser({
   alias: "gui",
   url: "http://localhost:8080",
-  splitter: "an-unused-url-path"
+  splitter: "splitter",
+  format: {
+    stringify: function (x) { return x },
+    parse: function (x) { return x }
+  }
 });
 
 melf.sync.register("prompt", function (origin, data, callback) {

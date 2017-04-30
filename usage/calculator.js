@@ -1,9 +1,13 @@
-var Melf = require("melf/node");
+var MelfNode = require("melf/node");
 
-var melf = Melf({
+var melf = MelfNode({
   alias: "calculator",
   url: "http://localhost:8080",
-  splitter: "an-unused-url-path"
+  splitter: "splitter",
+  format: {
+    stringify: function (x) { return x },
+    parse: function (x) { return x }
+  }
 });
 
 melf.sync.register("sphere", function (origin, data, callback) {

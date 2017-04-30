@@ -8,7 +8,7 @@ function remove (xs, x) {
   return i !== -1;
 }
 
-module.exports = function (distribute, onclose) {
+module.exports = function (distribute) {
   var mock = [];
   mock.send = mock.push;
   var response = null;
@@ -48,7 +48,7 @@ module.exports = function (distribute, onclose) {
       if (Array.isArray(mock)) {
         mock.forEach(socket.send.bind(socket));
         mock = socket;
-        mock.onclose = function (code, reason) {
+        mock.on("close", function () {
           for (var i=0; i<pendings.length; i++) {
             var parts = /^([^/]*)\/([^/]*)\/(.*)$/.exec(pendings[i]);
             distribute(parts[1], parts[2], {
@@ -57,8 +57,7 @@ module.exports = function (distribute, onclose) {
               data: null
             });
           }
-          onclose(code, reason);
-        };
+        });
         mock.onmessage = function (message) {
           var error = process("@", message.data);
           if (error) {
@@ -69,18 +68,14 @@ module.exports = function (distribute, onclose) {
         mock.close(4000, "already-connected");
       }
     },
-    onrequest: function (action, req, res) {
+    onrequest: function (action, body, res) {
       if (action === "emit") {
-        var line = "";
-        req.on("data", function (data) { line += data });
-        req.on("end", function () {
-          var error = process("$", line);
-          if (error) {
-            res.writeHead(400);
-            res.end(error);
-          }
-          res.end();
-        });
+        var error = process("$", body);
+        if (error) {
+          res.writeHead(400);
+          res.end(error);
+        }
+        res.end();
       } else if (action === "wait" && !lines.length) {
         response = res;
       } else if (action === "wait" || action === "pull") {
