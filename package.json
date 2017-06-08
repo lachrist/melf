@@ -9,7 +9,7 @@
 , "homepage": "http://github.com/lachrist/melf"
 , "license" : "MIT"
 , "dependencies":
-  { "request-uniform" : "*"
+  { "client-uniform" : "*"
   , "ws" : "*"
   }
 , "main": "main.js"

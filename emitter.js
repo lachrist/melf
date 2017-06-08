@@ -3,8 +3,13 @@ module.exports = function (format, send) {
   var handlers = {};
   var callbacks = {};
   return {
-    register: function (name, handler) { handlers[name] = handler },
-    unregister: function (name) { delete handlers[name] },
+    on: function (name, handler) {
+      if (typeof handler === "function")
+        return handlers[name] = handler;
+      if (!handler)
+        return delete handlers[name];
+      throw new Error("Handler is not a function: "+handler);
+    },
     receive: function (origin, event) {
       if ("token" in event && "name" in event) {
         if (event.name in handlers) {

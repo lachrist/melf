@@ -33,19 +33,19 @@ exports.request = function (req, res) {
 };
 
 exports.socket = function (socket) {
-  process.stdout.write("socket#"+socket.upgradeReq.url+" connected\n");
+  process.stdout.write("socket"+socket.upgradeReq.url+" connected\n");
   var mock = new EventEmitter();
   socket.on("message", function (message) {
-    process.stdout.write("socket#"+socket.upgradeReq.url+" << "+message+"\n");
+    process.stdout.write("socket"+socket.upgradeReq.url+" << "+message+"\n");
     mock.emit("message", message);
   });
   socket.on("close", function (code, reason) {
-    process.stdout.write("socket#"+socket.upgradeReq.url+" disconnected\n");
+    process.stdout.write("socket"+socket.upgradeReq.url+" disconnected\n");
     mock.emit("close", code, reason);
   });
   mock.upgradeReq = socket.upgradeReq;
   mock.send = function (message) {
-    process.stdout.write("socket#"+socket.upgradeReq.url+" >> "+message+"\n");
+    process.stdout.write("socket"+socket.upgradeReq.url+" >> "+message+"\n");
     return socket.send(message);
   };
   mock.close = function (code, reason) {

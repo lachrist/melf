@@ -1,10 +1,10 @@
 
 module.exports = function (connections, origin) {
-  return function (channel, recipient, event) {
+  return function (recipient, event) {
     if (recipient in connections) {
-      connections[recipient].receive(channel, origin, event);
+      connections[recipient].receive(origin, event);
     } else if ("token" in event) {
-      connections[origin].receive(channel, "", {
+      connections[origin].receive(recipient, {
         echo: event.token,
         error: "recipient-not-found",
         data: null

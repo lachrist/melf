@@ -1,19 +1,18 @@
-var MelfBrowser = require("melf/browser");
+var Melf = require("melf");
+var Client = require("client-uniform/browser");
 
-var melf = MelfBrowser({
+function identity (x) { return x }
+
+var melf = Melf({
+  client: Client("localhost:8080"),
   alias: "gui",
-  url: "http://localhost:8080",
-  splitter: "splitter",
-  format: {
-    stringify: function (x) { return x },
-    parse: function (x) { return x }
-  }
+  format: {stringify:identity, parse:identity}
 });
 
-melf.sync.register("prompt", function (origin, data, callback) {
+melf.on("prompt", function (origin, data, callback) {
   callback(null, prompt(data));
 });
 
-alert(melf.sync.emit("calculator", "sphere", "surface"));
+alert(melf.emit("calculator", "sphere", "surface"));
 
-alert(melf.sync.emit("calculator", "cube", "volume"));
+alert(melf.emit("calculator", "cube", "volume"));
