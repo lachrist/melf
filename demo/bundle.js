@@ -14,9 +14,9 @@ var receptor = ReceptorMelf({
     console.log(alias+" close "+code+" "+reason);
   });
 });
-var alice = receptor.spawn("alice.js");
+var alice = receptor.spawn("alice-bundle.js");
 setTimeout(function () {
-  var bob = receptor.spawn("bob.js");
+  var bob = receptor.spawn("bob-bundle.js");
   setTimeout(function () {
     alice.terminate();
     bob.terminate();
