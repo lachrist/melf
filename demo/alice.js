@@ -8,7 +8,7 @@ Melf({
   if (error)
     throw error;
   melf.rprocedures.greeting = function (origin, data, callback) {
-    melf.rcall(origin, "echo", "Hello "+origin+", you said: "+JSON.stringifdy(data), callback);
+    melf.rcall(origin, "echo", "Hello "+origin+", you said: "+JSON.stringify(data), callback);
   };
   melf.rprocedures.error = function (origin, data, callback) {
     callback("Sorry, "+origin+" there is an error...");
