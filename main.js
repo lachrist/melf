@@ -1,154 +1,50 @@
 
-var Event = require("./event.js");
-var Emitter = require("./emitter.js");
-
-// socket send:
-//   - melf request           (recipient/?token/name/data)
-//   - melf response          (origin/!echo/error/data)
-// socket receive:
-//   - ping
-// HTTP request:
-//   - wait until message     GET key/wait
-//   - pull immediatly        GET key/pull
-// HTTP response:
-//   - melf request          (recipient/?token/name/data).join(\n)
-//   - melf response         (origin/!echo/error/data).join(\n)
-
-function extract (response) {
-  if (response.status !== 200 && response.status !== 100)
-    throw new Error(response.status+" ("+response.reason+")");
-  return response.body;
-}
+var Agent = require("./agent.js");
+var Message = require("./message.js");
+var Constants = require("./constants.js");
 
 module.exports = function (options, callback) {
-  var con = options.channel.connect("/"+options.private);
-  con.onopen = function () {
-    var emitter = Emitter(options.format||JSON, function (recipient, event) {
-      con.send(recipient+"/"+Event.stringify(event));
-    });
-    function onbody (body) {
-      if (body) {
-        var lines = body.split("\n");
-        for (var i=0, l=lines.length; i<l; i++) {
-          var parts = /^([^/]*)\/(.*)$/.exec(lines[i]);
-          var error = emitter.receive(parts[1], Event.parse(parts[2]));
-          if (error) {
-            console.warn(error+" from "+line[i]);
-          }
-        }
-      }
+  var path = "/"+options.alias+"/"+options.key;
+  var expect = 0;
+  function online (line) {
+    expect = expect === Constants.max ? 0 : expect+1;
+    var index = line.indexOf("/");
+    agent.receive(line.substring(0, index), Message.parse(line.substring(index+1)));
+  }
+  var agent = Agent(options.format||JSON, function (recipient, event) {
+    con.send(recipient+"/"+Message.stringify(event));
+  });
+  var con = options.emitter.connect(path);
+  con.on("message", function (message) {
+    var index = message.indexOf("/");
+    if (expect === parseInt(message.substring(0, index), Constants.radix)) {
+      online(message.substring(index+1));
     }
-    (function () {
-      var timeout = null;
-      function pull () {
-        timeout = null;
-        onbody(extract(options.client.http("GET", "/"+options.private+"/pull/", {}, null)));
+  });
+  con.on("error", callback);
+  con.on("open", function () {
+    con.removeAllListeners("error");
+    con.alias = options.alias;
+    con.rprocedures = agent.rprocedures;
+    con.rcall = function (recipient, name, data, callback) {
+      if (callback)
+        return agent.rcall(recipient, name, data, callback);
+      var pending = true;
+      var result = null;
+      agent.rcall(recipient, name, data, function (error, data) {
+        if (error)
+          throw error;
+        pending = false;
+        result = data;
+      });
+      while (pending) {
+        var res = options.emitter.request("GET", path+"/"+expect.toString(36), {}, null);
+        if (res[0] || res[1] !== 200)
+          throw res[0] || new Error(res[1]+" ("+res[2]+")");
+        res[4].split("\n").forEach(online);
       }
-      con.onmessage = function () {
-        timeout = timeout || setTimeout(pull, 0);
-      };
-    } ());
-    callback({
-      on: emitter.on,
-      emit: function (recipient, name, data, callback) {
-        if (callback)
-          return emitter.emit(recipient, name, data, callback);
-        var pending = true;
-        var result = null;
-        emitter.emit(recipient, name, data, function (error, data) {
-          if (error)
-            throw error;
-          pending = false;
-          result = data;
-        });
-        while (pending)
-          onbody(extract(options.client.http("GET", "/"+options.splitter+"/wait/"+key, {}, null)));
-        return result;
-      }
-    });
-  };
-}
-
-// module.exports = function (options, callback) {
-//   if (!callback) {
-//     return make(options, extract(options.client.http("GET", "/"+options.splitter+"/auth/"+options.alias, {}, null)), function (error) {
-//       if (error) {
-//         throw error;
-//       }
-//     });
-//   }
-//   options.client.http("GET", "/"+options.splitter+"/auth/"+options.alias, {}, null, function (error, response) {
-//     if (error)
-//       return callback(error);
-//     try {
-//       var body = extract(response);
-//     } catch (error) {
-//       return callback(error);
-//     }
-//     make(options, body, callback);
-//   });
-// };
-
-// function make (options, body, callback) {
-//   var alias = body.split("/")[0];
-//   var key = body.split("/")[1];
-//   var emitter = Emitter(options.format||JSON, function (recipient, event) {
-//     mock.send(recipient+"/"+Event.stringify(event));
-//   });
-//   var mock = {
-//     send: function (message) {
-//       options.client.http("POST", "/"+options.splitter+"/emit/"+key, {}, message, true);
-//     }
-//   };
-//   (function () {
-//     var timeout = null;
-//     function pull () {
-//       timeout = null;
-//       onbody(extract(options.client.http("GET", "/"+options.splitter+"/pull/"+key, {}, null)));
-//     }
-//     var socket = options.client.ws("/"+options.splitter+"/"+key);
-//     socket.onmessage = function () {
-//       timeout = timeout || setTimeout(pull, 0);
-//     };
-//     socket.onerror = function (error) {
-//       callback(error);
-//     }
-//     socket.onopen = function () {
-//       mock = socket;
-//       delete socket.onerror;
-//       callback(null, interface);
-//     };
-//   } ());
-//   function onbody (body) {
-//     if (body) {
-//       var lines = body.split("\n");
-//       for (var i=0, l=lines.length; i<l; i++) {
-//         var parts = /^([^/]*)\/(.*)$/.exec(lines[i]);
-//         var error = emitter.receive(parts[1], Event.parse(parts[2]));
-//         if (error) {
-//           console.warn(error+" from "+line[i]);
-//         }
-//       }
-//     }
-//   }
-//   var interface = {
-//     alias: alias,
-//     on: emitter.on,
-//     emit: function (recipient, name, data, callback) {
-//       if (callback)
-//         return emitter.emit(recipient, name, data, callback);
-//       var pending = true;
-//       var result = null;
-//       emitter.emit(recipient, name, data, function (error, data) {
-//         if (error)
-//           throw error;
-//         pending = false;
-//         result = data;
-//       });
-//       while (pending)
-//         onbody(extract(options.client.http("GET", "/"+options.splitter+"/wait/"+key, {}, null)));
-//       return result;
-//     }
-//   };
-//   return interface;
-// }
+      return result;
+    }
+    callback(null, con);
+  });
+};

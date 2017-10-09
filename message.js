@@ -1,5 +1,5 @@
 
-// ?token/event/data
+// ?token/name/data
 // !echo/error/data
 
 exports.parse = function parse (string) {
@@ -18,13 +18,12 @@ exports.parse = function parse (string) {
       data: parts[3] || null
     };
   }
-  return  {};
 };
 
-exports.stringify = function (event, stringifydata) {
-  if ("token" in event && "name" in  event)
-    return "?"+event.token+"/"+event.name+"/"+(event.data||"");
-  if ("echo" in event)
-    return "!"+event.echo+"/"+(event.error||"")+"/"+(event.data||"");
-  throw new Error("Cannot write event: "+JSON.stringify(event));
+exports.stringify = function (message) {
+  if ("token" in message && "name" in message)
+    return "?"+message.token+"/"+message.name+"/"+(message.data||"");
+  if ("echo" in message)
+    return "!"+message.echo+"/"+(message.error||"")+"/"+(message.data||"");
+  throw new Error("Cannot write message: "+JSON.stringify(message));
 };
