@@ -1,33 +1,39 @@
-var Emitter = require("antena/emitter/worker");
-var Melf = require("../main.js");
+const Emitter = require("antena/emitter/worker");
+const Melf = require("../main.js");
 Melf({
   emitter: Emitter(),
   alias: "bob",
   key: "bar"
-}, function (error, melf) {
+}, (error, melf) => {
   if (error)
     throw error;
-  // This can get executed in the middle of a synchronous rcall!
-  melf.rprocedures.echo = function (origin, data, callback) {
-    console.log("echo "+origin+" "+data);
+  // rprocedures can get executed in the middle of a synchronous rcall!
+  melf.rprocedures.echo = (origin, data, callback) => {
+    console.log("echoing to "+origin);
     callback(null, data);
   };
-  function test (recipient, rname) {
+  const test = (recipient, rname, data, callback) => {
+    console.log("BEGIN "+recipient+" "+rname);
     // synchronous remote procedure call //
     try {
-      console.log(rname+"-sync data: "+melf.rcall(recipient, rname, rname+"-sync"));
+      console.log(rname+"-sync data: "+melf.rcall(recipient, rname, data));
     } catch (error) {
       console.log(rname+"-sync error: "+error);
     }
     // asynchornous remote procedure call //
-    melf.rcall(recipient, rname, rname+"-async", function (error, data) {
+    melf.rcall(recipient, rname, data, (error, data) => {
       if (error)
-        return console.log(rname+"-async error: "+error);
-      console.log(rname+"-async data: "+data);
+        console.log(rname+"-async error: "+error);
+      else
+        console.log(rname+"-async data: "+data);
+      callback();
     });
-  }
-  test("alice", "greeting");
-  test("alyce", "greeting");
-  test("alice", "greetyng");
-  test("alice", "error");
+  };
+  test("alice", "greeting", "fablabla?", () => {
+    test("alice", "error", null, () => {
+      test("alyce", "greeting", null, () => {
+        test("alice", "greetying", null, () => {});
+      });
+    });
+  });
 });

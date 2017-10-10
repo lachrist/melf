@@ -1,5 +1,5 @@
 
-var Common = require("./common.js");
-var Receptor = require("antena/receptor");
+const Common = require("./common.js");
+const Receptor = require("antena/receptor");
 
 module.exports = Common(Receptor);

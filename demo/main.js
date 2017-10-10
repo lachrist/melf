@@ -1,18 +1,18 @@
-var ReceptorMelf = require("../receptor/worker");
-var receptor = ReceptorMelf({
+const ReceptorMelf = require("../receptor/worker");
+const receptor = ReceptorMelf({
   alice: "foo",
   bob: "bar"
-}, function (alias, socket) {
+}, (alias, socket) => {
   console.log(alias+" open");
-  socket.on("close", function (code, reason) {
+  socket.on("close", (code, reason) => {
     console.log(alias+" close "+code+" "+reason);
   });
 });
-var alice = receptor.spawn("alice-bundle.js");
-setTimeout(function () {
-  var bob = receptor.spawn("bob-bundle.js");
-  setTimeout(function () {
+const alice = receptor.spawn("alice-bundle.js");
+setTimeout(() => {
+  const bob = receptor.spawn("bob-bundle.js");
+  setTimeout(() => {
     alice.terminate();
     bob.terminate();
-  }, 1000);
-}, 1000);
+  }, 5000);
+}, 5000);

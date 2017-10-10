@@ -1,169 +1,233 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 
-module.exports = function (format, send) {
-  var callbacks = Object.create(null);
-  var rprocedures = Object.create(null);
-  return {
-    rprocedures: rprocedures,
-    rcall: function (recipient, name, data, callback) {   
-      do {
-        var token = Math.random().toString(36).substring(2, 10);
-      } while (token in callbacks);
-      callbacks[token] = callback;
-      send(recipient, {
-        token: token,
-        name: name,
-        data: format.stringify(data)
+function rcall (recipient, name, data, callback) {
+  do {
+    var token = Math.random().toString(36).substring(2, 10);
+  } while (token in this._callbacks);
+  this._callbacks[token] = callback;
+  this._send(recipient, {
+    token: token,
+    name: name,
+    data: data
+  });
+}
+
+function receive (origin, meteor) {
+  if ("token" in meteor && "name" in meteor) {
+    if (meteor.name in this.rprocedures) {
+      const send = this._send;
+      this.rprocedures[meteor.name](origin, meteor.data, (error, data) => {
+        send(origin, {
+          echo: meteor.token,
+          error: error,
+          data: data
+        });
       });
-    },
-    receive: function (origin, message) {
-      if ("token" in message && "name" in message) {
-        if (message.name in rprocedures) {
-          rprocedures[message.name](origin, format.parse(message.data), function (error, data) {
-            send(origin, {
-              echo: message.token,
-              error: error,
-              data: format.stringify(data)
-            });
-          });
-        } else {
-          send(origin, {
-            echo: message.token,
-            error: "remote-procedure-not-found"
-          });
-        }
-      } else if (message.echo in callbacks) {
-        var callback = callbacks[message.echo];
-        delete callbacks[message.echo];
-        callback(message.error, format.parse(message.data));
-      }
+    } else {
+      this._send(origin, {
+        echo: meteor.token,
+        error: new Error("Remote procedure not found: "+meteor.name)
+      });
     }
+  } else if (meteor.echo in this._callbacks) {
+    const callback = this._callbacks[meteor.echo];
+    delete this._callbacks[meteor.echo];
+    callback(meteor.error, meteor.data);
   }
+}
+
+module.exports = (send) => {
+  return {
+    _send: send,
+    _callbacks: Object.create(null),
+    rprocedures: Object.create(null),
+    rcall: rcall,
+    receive: receive
+  };
 };
 
 },{}],2:[function(require,module,exports){
-
-exports.max = parseInt("zzzz", 36);
-exports.key = "k";
-
-},{}],3:[function(require,module,exports){
-var Emitter = require("antena/emitter/worker");
-var Melf = require("../main.js");
+const Emitter = require("antena/emitter/worker");
+const Melf = require("../main.js");
 Melf({
   emitter: Emitter(),
   alias: "bob",
   key: "bar"
-}, function (error, melf) {
+}, (error, melf) => {
   if (error)
     throw error;
-  // This can get executed in the middle of a synchronous rcall!
-  melf.rprocedures.echo = function (origin, data, callback) {
-    console.log("echo "+origin+" "+data);
+  // rprocedures can get executed in the middle of a synchronous rcall!
+  melf.rprocedures.echo = (origin, data, callback) => {
+    console.log("echoing to "+origin);
     callback(null, data);
   };
-  function test (recipient, rname) {
+  const test = (recipient, rname, data, callback) => {
+    console.log("BEGIN "+recipient+" "+rname);
     // synchronous remote procedure call //
     try {
-      console.log(rname+"-sync data: "+melf.rcall(recipient, rname, rname+"-sync"));
+      console.log(rname+"-sync data: "+melf.rcall(recipient, rname, data));
     } catch (error) {
       console.log(rname+"-sync error: "+error);
     }
     // asynchornous remote procedure call //
-    melf.rcall(recipient, rname, rname+"-async", function (error, data) {
+    melf.rcall(recipient, rname, data, (error, data) => {
       if (error)
-        return console.log(rname+"-async error: "+error);
-      console.log(rname+"-async data: "+data);
+        console.log(rname+"-async error: "+error);
+      else
+        console.log(rname+"-async data: "+data);
+      callback();
     });
-  }
-  test("alice", "greeting");
-  test("alyce", "greeting");
-  test("alice", "greetyng");
-  test("alice", "error");
-});
-},{"../main.js":4,"antena/emitter/worker":10}],4:[function(require,module,exports){
-
-var Agent = require("./agent.js");
-var Message = require("./message.js");
-var Constants = require("./constants.js");
-
-module.exports = function (options, callback) {
-  var path = "/"+options.alias+"/"+options.key;
-  var expect = 0;
-  function online (line) {
-    expect = expect === Constants.max ? 0 : expect+1;
-    var index = line.indexOf("/");
-    agent.receive(line.substring(0, index), Message.parse(line.substring(index+1)));
-  }
-  var agent = Agent(options.format||JSON, function (recipient, event) {
-    con.send(recipient+"/"+Message.stringify(event));
-  });
-  var con = options.emitter.connect(path);
-  con.on("message", function (message) {
-    var index = message.indexOf("/");
-    if (expect === parseInt(message.substring(0, index), Constants.radix)) {
-      online(message.substring(index+1));
-    }
-  });
-  con.on("error", callback);
-  con.on("open", function () {
-    con.removeAllListeners("error");
-    con.alias = options.alias;
-    con.rprocedures = agent.rprocedures;
-    con.rcall = function (recipient, name, data, callback) {
-      if (callback)
-        return agent.rcall(recipient, name, data, callback);
-      var pending = true;
-      var result = null;
-      agent.rcall(recipient, name, data, function (error, data) {
-        if (error)
-          throw error;
-        pending = false;
-        result = data;
+  };
+  test("alice", "greeting", "fablabla?", () => {
+    test("alice", "error", null, () => {
+      test("alyce", "greeting", null, () => {
+        test("alice", "greetying", null, () => {});
       });
-      while (pending) {
-        var res = options.emitter.request("GET", path+"/"+expect.toString(36), {}, null);
-        if (res[0] || res[1] !== 200)
-          throw res[0] || new Error(res[1]+" ("+res[2]+")");
-        res[4].split("\n").forEach(online);
-      }
-      return result;
+    });
+  });
+});
+},{"../main.js":3,"antena/emitter/worker":9}],3:[function(require,module,exports){
+
+const Events = require("events");
+const Agent = require("./agent.js");
+const MeteorFormat = require("./meteor-format.js");
+
+const max = parseInt("zzzz", 36);
+
+function rcall (recipient, name, data, callback) {
+  if (callback)
+    return this._rcall(recipient, name, data, callback);
+  let pending = true;
+  let result = null;
+  this._rcall(recipient, name, data, (error, data) => {
+    if (error)
+      throw error;
+    pending = false;
+    result = data;
+  });
+  while (pending) {
+    let res = this._emitter.request("GET", this._login+"/"+this._expect.toString(36), {}, null);
+    if (res[0] || res[1] !== 200)
+      throw res[0] || new Error(res[1]+" ("+res[2]+")");
+    if (res[4] !== "") {
+      res[4].split("\n").forEach(this._online);
     }
-    callback(null, con);
+  }
+  return result;
+}
+
+function close (code, reason) {
+  this._con.close(code, reason);
+}
+
+module.exports = (options, callback) => {
+  const login = "/"+options.alias+"/"+options.key;
+  const con = options.emitter.connect(login);
+  con.on("error", callback);
+  con.on("open", () => {
+    con.removeAllListeners("error");
+    con.on("message", (message) => {
+      const index = message.indexOf("/");
+      if (melf._expect === parseInt(message.substring(0, index), 36)) {
+        melf._online(message.substring(index+1));
+      }
+    });
+    con.on("error", (error) => {
+      melf.emit("error", error);
+    });
+    con.on("close", (code, reason) => {
+      melf.emit("close", code, reason);
+    });
+    const mformat = MeteorFormat(options.format);
+    const melf = new Events();
+    Object.assign(melf, Agent((recipient, message) => {
+      con.send(recipient+"/"+mformat.stringify(message));
+    }));
+    melf._receive = melf.receive;
+    melf._rcall = melf.rcall;
+    melf._expect = 0;
+    melf._con = con;
+    melf._emitter = options.emitter;
+    melf._login = login;
+    melf._online = (line) => {
+      melf._expect++;
+      if (melf._expect > max)
+        melf._expect = 0;
+      const index = line.indexOf("/");
+      melf._receive(line.substring(0, index), mformat.parse(line.substring(index+1)));
+    };
+    melf.alias = options.alias;
+    melf.close = close;
+    melf.rcall = rcall;
+    delete melf.receive;
+    callback(null, melf);
   });
 };
 
-},{"./agent.js":1,"./constants.js":2,"./message.js":5}],5:[function(require,module,exports){
+},{"./agent.js":1,"./meteor-format.js":4,"events":12}],4:[function(require,module,exports){
 
 // ?token/name/data
-// !echo/error/data
+// @echo/data
+// !echo/error-message
+// |echo/error
 
-exports.parse = function parse (string) {
-  var parts = /^([^/]*)\/([^/]*)\/(.*)$/.exec(string);
-  if (parts && string[0] === "?") {
-    return {
-      token: parts[1].substring(1),
-      name: parts[2],
-      data: parts[3] || null
-    };
-  }
-  if (parts && string[0] === "!") {
-    return {
-      echo: parts[1].substring(1),
-      error: parts[2] || null,
-      data: parts[3] || null
-    };
-  }
+module.exports = (format) => {
+  return {
+    _format: format || JSON,
+    parse: parse,
+    stringify: stringify
+  };
 };
 
-exports.stringify = function (message) {
-  if ("token" in message && "name" in message)
-    return "?"+message.token+"/"+message.name+"/"+(message.data||"");
-  if ("echo" in message)
-    return "!"+message.echo+"/"+(message.error||"")+"/"+(message.data||"");
-  throw new Error("Cannot write message: "+JSON.stringify(message));
+function parse (string) {
+  if (string[0] === "?") {
+    const parts = /^([^/]*)\/([^/]*)\/(.*)$/.exec(string.substring(1));
+    if (parts) {
+      return {
+        token: parts[1],
+        name: parts[2],
+        data: this._format.parse(parts[3])
+      };
+    }
+  }
+  const parts = /^([^/]*)\/(.*)$/.exec(string.substring(1));
+  if (parts) {
+    if (string[0] === "@") {
+      return {
+        echo: parts[1],
+        data: this._format.parse(parts[2])
+      };
+    }
+    if (string[0] === "!") {
+      return {
+        echo: parts[1],
+        error: new Error(JSON.parse(parts[2]))
+      };
+    }
+    if (string[0] === "|") {
+      return {
+        echo: parts[1],
+        error: this._format.parse(parts[2])
+      };
+    }
+  }
+  throw new Error("Cannot parse as meteor: "+string);
 };
 
-},{}],6:[function(require,module,exports){
+function stringify (meteor) {
+  if ("token" in meteor && "name" in meteor)
+    return "?"+meteor.token+"/"+meteor.name+"/"+this._format.stringify(meteor.data);
+  if ("echo" in meteor) {
+    if (meteor.error instanceof Error)
+      return "!"+meteor.echo+"/"+JSON.stringify(meteor.error.message);
+    if (meteor.error)
+      return "|"+meteor.echo+"/"+this._format.stringify(meteor.error);
+    return "@"+meteor.echo+"/"+this._format.stringify(meteor.data);
+  }
+  throw new Error("Cannot stringify meteor: "+meteor);
+};
+
+},{}],5:[function(require,module,exports){
 
 var Split = require("./method/split.js");
 var Trace = require("./method/trace.js");
@@ -183,7 +247,7 @@ module.exports = function (request, connect) {
   return emitter;
 };
 
-},{"./method/fork.js":7,"./method/split.js":8,"./method/trace.js":9}],7:[function(require,module,exports){
+},{"./method/fork.js":6,"./method/split.js":7,"./method/trace.js":8}],6:[function(require,module,exports){
 
 module.exports = function (splitter) {
   var emitter = Object.create(Object.getPrototypeOf(this));
@@ -192,7 +256,7 @@ module.exports = function (splitter) {
   return emitter;
 };
 
-},{}],8:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 
 module.exports = function (splitters) {
   var emitters = {};
@@ -204,7 +268,7 @@ module.exports = function (splitters) {
   return emitters;
 };
 
-},{}],9:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 
 var SocketLog = require("../../util/socket-log.js");
 
@@ -243,7 +307,7 @@ module.exports = function (name) {
   return self;
 };
 
-},{"../../util/socket-log.js":11}],10:[function(require,module,exports){
+},{"../../util/socket-log.js":10}],9:[function(require,module,exports){
 (function (global){
 
 var WorkerSocketPool = require("../util/worker-socket-pool.js");
@@ -334,7 +398,7 @@ module.exports = function (size) {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../util/worker-socket-pool.js":12,"./factory.js":6}],11:[function(require,module,exports){
+},{"../util/worker-socket-pool.js":11,"./factory.js":5}],10:[function(require,module,exports){
 
 var Events = require("events");
 
@@ -367,7 +431,7 @@ module.exports = function (con, name) {
   return wrapper;
 };
 
-},{"events":13}],12:[function(require,module,exports){
+},{"events":12}],11:[function(require,module,exports){
 
 var Events = require("events");
 
@@ -446,7 +510,7 @@ module.exports = function (poster) {
   };
 };
 
-},{"events":13}],13:[function(require,module,exports){
+},{"events":12}],12:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -750,4 +814,4 @@ function isUndefined(arg) {
   return arg === void 0;
 }
 
-},{}]},{},[3]);
+},{}]},{},[2]);

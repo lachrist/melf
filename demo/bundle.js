@@ -1,59 +1,23 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
-
-exports.max = parseInt("zzzz", 36);
-exports.key = "k";
-
-},{}],2:[function(require,module,exports){
-var ReceptorMelf = require("../receptor/worker");
-var receptor = ReceptorMelf({
+const ReceptorMelf = require("../receptor/worker");
+const receptor = ReceptorMelf({
   alice: "foo",
   bob: "bar"
-}, function (alias, socket) {
+}, (alias, socket) => {
   console.log(alias+" open");
-  socket.on("close", function (code, reason) {
+  socket.on("close", (code, reason) => {
     console.log(alias+" close "+code+" "+reason);
   });
 });
-var alice = receptor.spawn("alice-bundle.js");
-setTimeout(function () {
-  var bob = receptor.spawn("bob-bundle.js");
-  setTimeout(function () {
+const alice = receptor.spawn("alice-bundle.js");
+setTimeout(() => {
+  const bob = receptor.spawn("bob-bundle.js");
+  setTimeout(() => {
     alice.terminate();
     bob.terminate();
-  }, 1000);
-}, 1000);
-},{"../receptor/worker":16}],3:[function(require,module,exports){
-
-// ?token/name/data
-// !echo/error/data
-
-exports.parse = function parse (string) {
-  var parts = /^([^/]*)\/([^/]*)\/(.*)$/.exec(string);
-  if (parts && string[0] === "?") {
-    return {
-      token: parts[1].substring(1),
-      name: parts[2],
-      data: parts[3] || null
-    };
-  }
-  if (parts && string[0] === "!") {
-    return {
-      echo: parts[1].substring(1),
-      error: parts[2] || null,
-      data: parts[3] || null
-    };
-  }
-};
-
-exports.stringify = function (message) {
-  if ("token" in message && "name" in message)
-    return "?"+message.token+"/"+message.name+"/"+(message.data||"");
-  if ("echo" in message)
-    return "!"+message.echo+"/"+(message.error||"")+"/"+(message.data||"");
-  throw new Error("Cannot write message: "+JSON.stringify(message));
-};
-
-},{}],4:[function(require,module,exports){
+  }, 5000);
+}, 5000);
+},{"../receptor/worker":17}],2:[function(require,module,exports){
 
 function onrequest (method, path, headers, body, callback) {
   callback(400, "no-handler", {}, this._stack);
@@ -75,7 +39,7 @@ module.exports = function (prototype) {
   }
 };
 
-},{}],5:[function(require,module,exports){
+},{}],3:[function(require,module,exports){
 
 module.exports = function (receptors) {
   var receptor = Object.create(Object.getPrototypeOf(this));
@@ -84,7 +48,7 @@ module.exports = function (receptors) {
   return receptor;
 };
 
-},{}],6:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
 
 var WebworkerSocketPool = require("../../util/worker-socket-pool.js");
 var DispatchRequest = require("./util/dispatch-request.js");
@@ -165,7 +129,7 @@ module.exports = function (url, options) {
   return worker;
 };
 
-},{"../../util/worker-socket-pool.js":12,"./util/dispatch-connect.js":8,"./util/dispatch-request.js":9}],7:[function(require,module,exports){
+},{"../../util/worker-socket-pool.js":10,"./util/dispatch-connect.js":6,"./util/dispatch-request.js":7}],5:[function(require,module,exports){
 
 var SocketLog = require("../../util/socket-log.js");
 var DispatchRequest = require("./util/dispatch-request.js");
@@ -200,7 +164,7 @@ module.exports = function (name) {
   return receptor;
 };
 
-},{"../../util/socket-log.js":11,"./util/dispatch-connect.js":8,"./util/dispatch-request.js":9}],8:[function(require,module,exports){
+},{"../../util/socket-log.js":9,"./util/dispatch-connect.js":6,"./util/dispatch-request.js":7}],6:[function(require,module,exports){
 
 module.exports = function (receptor, path, con) {
   var segments = path.split("/");
@@ -212,7 +176,7 @@ module.exports = function (receptor, path, con) {
   }
 };
 
-},{}],9:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 
 module.exports = function onrequest (receptor, method, path, headers, body, callback) {
   var segments = path.split("/");
@@ -224,7 +188,7 @@ module.exports = function onrequest (receptor, method, path, headers, body, call
   }
 };
 
-},{}],10:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 
 var Spawn = require("./method/spawn.js");
 var Merge = require("./method/merge.js");
@@ -237,7 +201,7 @@ module.exports = Factory({
   trace: Trace
 });
 
-},{"./factory.js":4,"./method/merge.js":5,"./method/spawn.js":6,"./method/trace.js":7}],11:[function(require,module,exports){
+},{"./factory.js":2,"./method/merge.js":3,"./method/spawn.js":4,"./method/trace.js":5}],9:[function(require,module,exports){
 
 var Events = require("events");
 
@@ -270,7 +234,7 @@ module.exports = function (con, name) {
   return wrapper;
 };
 
-},{"events":17}],12:[function(require,module,exports){
+},{"events":18}],10:[function(require,module,exports){
 
 var Events = require("events");
 
@@ -349,131 +313,150 @@ module.exports = function (poster) {
   };
 };
 
-},{"events":17}],13:[function(require,module,exports){
+},{"events":18}],11:[function(require,module,exports){
 
-var Url = require("url");
-var Remote = require("./remote.js");
-var Post = require("./post.js");
-var Constants = require("../constants.js");
+const Url = require("url");
+const Remote = require("./remote.js");
+const Post = require("./post.js");
 
-module.exports = function (Receptor) {
-  return function (keys, onopen) {
-    var remotes = Object.create(null);
-    function authentify (parts) {
+module.exports = (Receptor) => {
+  return (keys, onopen) => {
+    onopen = onopen || (() => {});
+    const remotes = Object.create(null);
+    const authentify = (parts) => {
       return parts && parts[1] in keys && (!keys[parts[1]] || keys[parts[1]] === parts[2]);
-    }
+    };
     return Receptor({
-      onrequest: function (method, path, headers, body, callback) {
-        var parts = /^\/([^\/]+)\/([^\/]*)\/([0-9a-z]+)$/.exec(path);
+      onrequest: (method, path, headers, body, callback) => {
+        const parts = /^\/([^\/]+)\/([^\/]*)\/([0-9a-z]+)$/.exec(path);
         if (!authentify(parts))
           return callback(400, "authentification-failure", {}, "");
         if (!remotes[parts[1]])
           return callback(400, "disconnected", {}, "");
-        remotes[parts[1]].pull(parts[3], callback);
+        remotes[parts[1]].pull(parseInt(parts[3], 36), callback);
       },
-      onconnect: function (path, con) {
-        var parts = /^\/([^\/]+)\/([^\/]*)$/.exec(path);
+      onconnect: (path, con) => {
+        const parts = /^\/([^\/]+)\/([^\/]*)$/.exec(path);
         if (!authentify(parts))
           return con.close(4000, "authentification-failure");
         if (remotes[parts[1]])
           return con.close(4000, "connected");
         remotes[parts[1]] = Remote(con, Post(remotes, parts[1]));
-        con.on("close", function (code, reason) {
-          delete remotes[parts[1]];
-        });
-        onopen && onopen(parts[1], con);
+        con.on("close", () => delete remotes[parts[1]]);
+        onopen(parts[1], con);
       }
     });
   };
 };
 
-},{"../constants.js":1,"./post.js":14,"./remote.js":15,"url":22}],14:[function(require,module,exports){
+},{"./post.js":15,"./remote.js":16,"url":23}],12:[function(require,module,exports){
 
-module.exports = function (remotes, alias) {
-  return function (recipient, message) {
-    if (recipient in remotes)
-      return remotes[recipient].push(alias, message);
-    if ("token" in message && alias in remotes) {
-      remotes[alias].push(alias, {
-        echo: message.token,
-        error: "recipient-not-found"
-      });
-    }
-  };
+module.exports = (echo, message) => "!"+echo+"/"+JSON.stringify(message);
+
+},{}],13:[function(require,module,exports){
+
+module.exports = (mstring) => {
+  const parts = /^[@!|]([0-9a-z]+)\//.exec(mstring);
+  return parts && parts[1];
+};
+
+},{}],14:[function(require,module,exports){
+
+module.exports = (mstring) => {
+  const parts = /^\?([0-9a-z]+)\//.exec(mstring);
+  return parts && parts[1];
 };
 
 },{}],15:[function(require,module,exports){
 
-var Constants = require("../constants.js");
-var Message = require("../message.js");
+const MeteorError = require("./meteor-error.js");
+const MeteorGetToken = require("./meteor-get-token.js");
 
-module.exports = function (con, post) {
-  var counter = 0;
-  var buffer = [];
-  var pendings = [];
-  con.on("close", function () {
-    for (var i=0; i<pendings.length; i++) {
-      var index = pendings[i].indexOf("/"); 
+module.exports = (remotes, alias) => {
+  return (recipient, mstring) => {
+    if (recipient in remotes)
+      return remotes[recipient].push(alias, mstring);
+    const token = MeteorGetToken(mstring);
+    if (token && alias in remotes) {
+      remotes[alias].push(alias, MeteorError(token, "Recipient not found: "+recipient));
+    }
+  };
+};
+
+},{"./meteor-error.js":12,"./meteor-get-token.js":14}],16:[function(require,module,exports){
+
+const MeteorGetToken = require("./meteor-get-token.js");
+const MeteorGetEcho = require("./meteor-get-echo.js");
+
+const max = parseInt("zzzz", 36);
+
+module.exports = (con, post) => {
+  let counter = 0;
+  let buffer = [];
+  const pendings = [];
+  con.on("close", () => {
+    for (let i=0; i<pendings.length; i++) {
+      let index = pendings[i].indexOf("/"); 
       post(pendings[i].substring(0, index), {
         echo: pendings[i].substring(index),
-        error: "recipient-disconnected"
+        error: new Error("Recipient disconnected")
       });
     }
   });
-  con.on("message", function (data) {
-    var index = data.indexOf("/");
-    if (index === -1)
+  con.on("message", (message) => {
+    const index1 = message.indexOf("/");
+    if (index1 === -1)
       return con.close(4000, "cannot-parse-recipient");
-    var recipient = data.substring(0, index);
-    var message = Message.parse(data.substring(index+1));
-    if (!message)
-      return con.close(4000, "cannot-parse-message");
-    if ("echo" in message) {
-      var index = pendings.indexOf(recipient+"/"+message.echo);
-      if (index === -1)
+    const recipient = message.substring(0, index1);
+    const mstring = message.substring(index1+1);
+    const echo = MeteorGetEcho(mstring);
+    if (echo) {
+      const index2 = pendings.indexOf(recipient+"/"+echo);
+      if (index2 === -1)
         return con.close(4000, "unmatched-echo");
-      pendings.splice(index, 1);
+      pendings.splice(index2, 1);
     }
-    post(recipient, message);
+    post(recipient, mstring);
   });
   return {
-    close: function (code, reason) {
-      con.close(code, reason);
-    },
-    push: function (origin, message) {
-      if ("token" in message)
-        pendings.push(origin+"/"+message.token);
-      var line = origin+"/"+Message.stringify(message);
+    close: (code, reason) => { con.close(code, reason) },
+    push: (origin, mstring) => {
+      const token = MeteorGetToken(mstring);
+      if (token)
+        pendings.push(origin+"/"+token);
+      const line = origin+"/"+mstring;
       if (Array.isArray(buffer)) {
         buffer.push(line);
-        con.send(counter.toString(Constants.radix)+"/"+line);
+        con.send(counter.toString(36)+"/"+line);
       } else {
         buffer(200, "OK", {}, line);
         buffer = [];
       }
-      counter = counter === Constants.max ? 0 : counter+1;
+      counter++;
+      if (counter > max) {
+        counter = 0;
+      }
     },
-    pull: function (expect, callback) {
+    pull: (expect, callback) => {
       if (!Array.isArray(buffer))
         return callback(400, "already-waiting", {}, "");
-      var expect = parseInt(expect, Constants.radix);
-      var slice = (counter >= expect) ? (counter - expect) : (counter - expect + Constants.max + 1);
+      const slice = (counter>=expect) ? (counter-expect) : (counter-expect+max+1);
       if (slice === 0)
         return buffer = callback;
-      callback(200, "OK", {}, buffer.slice(buffer.length - slice).join("\n"));
+      callback(200, "OK", {}, buffer.slice(buffer.length-slice).join("\n"));
       buffer = [];
     }
   };
 };
 
-},{"../constants.js":1,"../message.js":3}],16:[function(require,module,exports){
+},{"./meteor-get-echo.js":13,"./meteor-get-token.js":14}],17:[function(require,module,exports){
 
-var Common = require("./common.js");
-var Receptor = require("antena/receptor/worker");
+const Common = require("./common.js");
+const Receptor = require("antena/receptor/worker");
 
 module.exports = Common(Receptor);
 
-},{"./common.js":13,"antena/receptor/worker":10}],17:[function(require,module,exports){
+},{"./common.js":11,"antena/receptor/worker":8}],18:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -777,7 +760,7 @@ function isUndefined(arg) {
   return arg === void 0;
 }
 
-},{}],18:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 (function (global){
 /*! https://mths.be/punycode v1.4.1 by @mathias */
 ;(function(root) {
@@ -1314,7 +1297,7 @@ function isUndefined(arg) {
 }(this));
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],19:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -1400,7 +1383,7 @@ var isArray = Array.isArray || function (xs) {
   return Object.prototype.toString.call(xs) === '[object Array]';
 };
 
-},{}],20:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -1487,13 +1470,13 @@ var objectKeys = Object.keys || function (obj) {
   return res;
 };
 
-},{}],21:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 'use strict';
 
 exports.decode = exports.parse = require('./decode');
 exports.encode = exports.stringify = require('./encode');
 
-},{"./decode":19,"./encode":20}],22:[function(require,module,exports){
+},{"./decode":20,"./encode":21}],23:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -2227,7 +2210,7 @@ Url.prototype.parseHost = function() {
   if (host) this.hostname = host;
 };
 
-},{"./util":23,"punycode":18,"querystring":21}],23:[function(require,module,exports){
+},{"./util":24,"punycode":19,"querystring":22}],24:[function(require,module,exports){
 'use strict';
 
 module.exports = {
@@ -2245,4 +2228,4 @@ module.exports = {
   }
 };
 
-},{}]},{},[2]);
+},{}]},{},[1]);

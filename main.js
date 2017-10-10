@@ -1,50 +1,76 @@
 
-var Agent = require("./agent.js");
-var Message = require("./message.js");
-var Constants = require("./constants.js");
+const Events = require("events");
+const Agent = require("./agent.js");
+const MeteorFormat = require("./meteor-format.js");
 
-module.exports = function (options, callback) {
-  var path = "/"+options.alias+"/"+options.key;
-  var expect = 0;
-  function online (line) {
-    expect = expect === Constants.max ? 0 : expect+1;
-    var index = line.indexOf("/");
-    agent.receive(line.substring(0, index), Message.parse(line.substring(index+1)));
+const max = parseInt("zzzz", 36);
+
+function rcall (recipient, name, data, callback) {
+  if (callback)
+    return this._rcall(recipient, name, data, callback);
+  let pending = true;
+  let result = null;
+  this._rcall(recipient, name, data, (error, data) => {
+    if (error)
+      throw error;
+    pending = false;
+    result = data;
+  });
+  while (pending) {
+    let res = this._emitter.request("GET", this._login+"/"+this._expect.toString(36), {}, null);
+    if (res[0] || res[1] !== 200)
+      throw res[0] || new Error(res[1]+" ("+res[2]+")");
+    if (res[4] !== "") {
+      res[4].split("\n").forEach(this._online);
+    }
   }
-  var agent = Agent(options.format||JSON, function (recipient, event) {
-    con.send(recipient+"/"+Message.stringify(event));
-  });
-  var con = options.emitter.connect(path);
-  con.on("message", function (message) {
-    var index = message.indexOf("/");
-    if (expect === parseInt(message.substring(0, index), Constants.radix)) {
-      online(message.substring(index+1));
-    }
-  });
+  return result;
+}
+
+function close (code, reason) {
+  this._con.close(code, reason);
+}
+
+module.exports = (options, callback) => {
+  const login = "/"+options.alias+"/"+options.key;
+  const con = options.emitter.connect(login);
   con.on("error", callback);
-  con.on("open", function () {
+  con.on("open", () => {
     con.removeAllListeners("error");
-    con.alias = options.alias;
-    con.rprocedures = agent.rprocedures;
-    con.rcall = function (recipient, name, data, callback) {
-      if (callback)
-        return agent.rcall(recipient, name, data, callback);
-      var pending = true;
-      var result = null;
-      agent.rcall(recipient, name, data, function (error, data) {
-        if (error)
-          throw error;
-        pending = false;
-        result = data;
-      });
-      while (pending) {
-        var res = options.emitter.request("GET", path+"/"+expect.toString(36), {}, null);
-        if (res[0] || res[1] !== 200)
-          throw res[0] || new Error(res[1]+" ("+res[2]+")");
-        res[4].split("\n").forEach(online);
+    con.on("message", (message) => {
+      const index = message.indexOf("/");
+      if (melf._expect === parseInt(message.substring(0, index), 36)) {
+        melf._online(message.substring(index+1));
       }
-      return result;
-    }
-    callback(null, con);
+    });
+    con.on("error", (error) => {
+      melf.emit("error", error);
+    });
+    con.on("close", (code, reason) => {
+      melf.emit("close", code, reason);
+    });
+    const mformat = MeteorFormat(options.format);
+    const melf = new Events();
+    Object.assign(melf, Agent((recipient, message) => {
+      con.send(recipient+"/"+mformat.stringify(message));
+    }));
+    melf._receive = melf.receive;
+    melf._rcall = melf.rcall;
+    melf._expect = 0;
+    melf._con = con;
+    melf._emitter = options.emitter;
+    melf._login = login;
+    melf._online = (line) => {
+      melf._expect++;
+      if (melf._expect > max)
+        melf._expect = 0;
+      const index = line.indexOf("/");
+      melf._receive(line.substring(0, index), mformat.parse(line.substring(index+1)));
+    };
+    melf.alias = options.alias;
+    melf.close = close;
+    melf.rcall = rcall;
+    delete melf.receive;
+    callback(null, melf);
   });
 };

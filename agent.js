@@ -1,41 +1,46 @@
 
-module.exports = function (format, send) {
-  var callbacks = Object.create(null);
-  var rprocedures = Object.create(null);
-  return {
-    rprocedures: rprocedures,
-    rcall: function (recipient, name, data, callback) {   
-      do {
-        var token = Math.random().toString(36).substring(2, 10);
-      } while (token in callbacks);
-      callbacks[token] = callback;
-      send(recipient, {
-        token: token,
-        name: name,
-        data: format.stringify(data)
+function rcall (recipient, name, data, callback) {
+  do {
+    var token = Math.random().toString(36).substring(2, 10);
+  } while (token in this._callbacks);
+  this._callbacks[token] = callback;
+  this._send(recipient, {
+    token: token,
+    name: name,
+    data: data
+  });
+}
+
+function receive (origin, meteor) {
+  if ("token" in meteor && "name" in meteor) {
+    if (meteor.name in this.rprocedures) {
+      const send = this._send;
+      this.rprocedures[meteor.name](origin, meteor.data, (error, data) => {
+        send(origin, {
+          echo: meteor.token,
+          error: error,
+          data: data
+        });
       });
-    },
-    receive: function (origin, message) {
-      if ("token" in message && "name" in message) {
-        if (message.name in rprocedures) {
-          rprocedures[message.name](origin, format.parse(message.data), function (error, data) {
-            send(origin, {
-              echo: message.token,
-              error: error,
-              data: format.stringify(data)
-            });
-          });
-        } else {
-          send(origin, {
-            echo: message.token,
-            error: "remote-procedure-not-found"
-          });
-        }
-      } else if (message.echo in callbacks) {
-        var callback = callbacks[message.echo];
-        delete callbacks[message.echo];
-        callback(message.error, format.parse(message.data));
-      }
+    } else {
+      this._send(origin, {
+        echo: meteor.token,
+        error: new Error("Remote procedure not found: "+meteor.name)
+      });
     }
+  } else if (meteor.echo in this._callbacks) {
+    const callback = this._callbacks[meteor.echo];
+    delete this._callbacks[meteor.echo];
+    callback(meteor.error, meteor.data);
   }
+}
+
+module.exports = (send) => {
+  return {
+    _send: send,
+    _callbacks: Object.create(null),
+    rprocedures: Object.create(null),
+    rcall: rcall,
+    receive: receive
+  };
 };
