@@ -1,7 +1,7 @@
 {
   "name": "melf",
   "description": "API for (a)synchronous communication between JavaScript processes",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "author": {
     "name": "Laurent Christophe",
     "email": "lachrist@vub.ac.be"

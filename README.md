@@ -1,11 +1,12 @@
-# melf
+# melf <img src="melf-scroll.png" align="right" alt="melf-logo" title="Melf's Minute Meteors"/>
 
-Pull-based communications for JavaScript processes
-Usage [here](/demo), live demo [here](wesh).
+(A)Synchronous remote procedure invocations for JavaScript processes.
+To avoid deadlocks, synchronous remote calls can be interleaved (only) by registered remote procedures.
+Usage [here](/demo), live demo [here](https://cdn.rawgit.com/lachrist/melf/7df19b6d/demo/index.html).
 
 ## `receptor = require("melf/receptor")(keys, onopen)`
 
-* `keys :: {string}`
+* `keys :: {string|null}`
 * `onopen(alias, socket)`
   * `alias :: string`
   * `socket :: ws.WebSocket`
@@ -13,7 +14,7 @@ Usage [here](/demo), live demo [here](wesh).
 
 ## `receptor = require("melf/receptor/worker")(keys, onopen)`
 
-* `keys :: {string}`
+* `keys :: {string|null}`
 * `onopen(alias, socket)`
   * `alias :: string`
   * `socket :: ws.WebSocket`
@@ -25,34 +26,34 @@ Usage [here](/demo), live demo [here](wesh).
   * `emitter :: antena.Emitter`
   * `alias :: string`
   * `key :: string`
-  * `formatter :: object`
-    * `data = parse(message)`
+  * `format :: object`
+    * `data = format.parse(message)`
       * `message :: string`
       * `data :: *`
-    * `message =  stringify(data)`
+    * `message = format.stringify(data)`
       * `data :: *`
       * `message :: string`
   * `callback(error, melf)`
     * `error :: Error`
     * `melf :: melf.Melf`
 
-## `Melf :: object`
+## `Melf :: events.EventEmitter`
 
-* `alias :: string`
-* `rprocedures :: {RProcedure}`
-* `rcall(recipient, name, data, callback)`
+* `melf.alias :: string`
+* `melf.rprocedures :: {RProcedure}`
+* `melf.rcall(recipient, name, data, callback)`
   * `recipient :: string`
   * `name :: string`
   * `data :: *`
   * `callback(error, data)`
     * `error :: Error`
     * `data :: *`
-* `data2 = rcall(recipient, name, data1)`
+* `data2 = melf.rcall(recipient, name, data1)`
   * `recipient :: string`
   * `name :: string`
   * `data1 :: *`
   * `data2 :: *`
-* `close(code, reason)`
+* `melf.close(code, reason)`
   * `code :: number`
   * `reason :: string`
 * Event `error`
@@ -61,11 +62,10 @@ Usage [here](/demo), live demo [here](wesh).
   * `code :: number`
   * `reason :: string`
 
-## `rprocedure(origin, data, callback)`
+## `RProcedure(origin, data, callback)`
 
-* `rprocedure :: RProcedure`
 * `origin :: string`
 * `data :: *`
 * `callback(error, data)`
-  * `error :: Error`
+  * `error :: Error | *`
   * `data :: *`
