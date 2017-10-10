@@ -1,4 +1,4 @@
-# melf <img src="melf-scroll.png" align="right" alt="melf-logo" title="Melf's Minute Meteors"/>
+# melf <img src="melf.png" align="right" alt="melf-logo" title="Melf's Minute Meteors"/>
 
 (A)Synchronous remote procedure invocations for JavaScript processes.
 To avoid deadlocks, synchronous remote calls can be interleaved (only) by registered remote procedures.
