@@ -1,10 +1,6 @@
-const Emitter = require("antena/emitter/worker");
+const Antena = require("antena/node");
 const Melf = require("../main.js");
-Melf({
-  emitter: Emitter(),
-  alias: "alice",
-  key: "foo"
-}, (error, melf) => {
+Melf(new Antena(process.argv[2]), "alice", (error, melf) => {
   if (error)
     throw error;
   melf.rprocedures.greeting = (origin, data, callback) => {

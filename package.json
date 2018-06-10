@@ -1,7 +1,7 @@
 {
   "name": "melf",
-  "description": "API for (a)synchronous communication between JavaScript processes",
-  "version": "0.0.5",
+  "description": "(A)Synchronous remote procedure calls for JavaScript processes",
+  "version": "1.0.0",
   "author": {
     "name": "Laurent Christophe",
     "email": "lachrist@vub.ac.be"
@@ -10,9 +10,11 @@
   "homepage": "http://github.com/lachrist/melf",
   "license": "MIT",
   "dependencies": {
-    "antena": "0.1.5"
+    "antena": "1.0.1",
+    "ws": "^5.2.0"
   },
   "main": "main.js",
+  "bin": "./server/bin.js",
   "keywords": [
     "JavaScript",
     "Processes",

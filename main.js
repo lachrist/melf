@@ -1,76 +1,128 @@
+const SplitIn = require("./split-in.js");
 
-const Events = require("events");
-const Agent = require("./agent.js");
-const MeteorFormat = require("./meteor-format.js");
+// Send-WebSocket: recipient/meteor
+// Receive-WebSocket: expect/meteor
+// Send-Http: expect
+// Receive-Http: meteor \n meteor \n ...
+// Meteor:
+//   - origin/token/pname/input
+//   -       /echo /hint /output
 
 const max = parseInt("zzzz", 36);
 
-function rcall (recipient, name, data, callback) {
+const noop = () => {};
+
+const onmessage = (event) => {
+  const [expect, meteor] = SplitIn(event.data, "/", 2);
+  if (event.target._melf._expect === parseInt(expect, 36)) {
+    event.target._melf._process_meteor(meteor);
+  }
+};
+
+const onerror = (event) => {
+  (event.target._melf.onerror||noop)(event);
+};
+
+const onclose = (event) => {
+  (event.target._melf.onclose||noop)(event);
+};
+
+const remote_procedure_not_found = (origin, input, callback) => {
+  callback(new Error("Remote procedure not found"));
+};
+
+function _process_meteor (meteor) {
+  this._expect++;
+  if (this._expect > max)
+    this._expect = 0;
+  if (meteor[0] === "/") {
+    const [,echo, hint, output] = SplitIn(meteor, "/", 4);
+    if (echo in this._callbacks) {
+      callback = this._callbacks[echo];
+      delete this._callbacks[echo];
+      if (hint === "s") {
+        callback(null, JSON.parse(output));
+      } else if (hint === "f") {
+        callback(JSON.parse(output));
+      } else if (hint === "e") {
+        const [message, stack] = JSON.parse(output);
+        const error = new Error(message);
+        error.stack = stack;
+        callback(error);
+      } else {
+        console.warn("Illegal hint: "+hint);
+      }
+    } else {
+      console.warn("Unmatched echo: "+echo);
+    }
+  } else {
+    const [origin, token, name, input] = SplitIn(meteor, "/", 4);
+    const self = this;
+    (this.rprocedures[name]||remote_procedure_not_found)(origin, JSON.parse(input), (error, data) => {
+      if (error) {
+        if (error instanceof Error) {
+          self._socket.send(origin+"//"+token+"/e/"+JSON.stringify([error.message, error.stack]));
+        } else {
+          self._socket.send(origin+"//"+token+"/f/"+JSON.stringify(error));
+        }
+      } else {
+        self._socket.send(origin+"//"+token+"/s/"+JSON.stringify(data));
+      }
+    });
+  }
+}
+
+function _async_rpcall (recipient, name, data, callback) {
+  do {
+    var token = Math.random().toString(36).substring(2, 10);
+  } while (token in this._callbacks);
+  this._callbacks[token] = callback;
+  this._socket.send(recipient+"/"+this.alias+"/"+token+"/"+name+"/"+JSON.stringify(data));
+}
+
+function rpcall (recipient, name, data, callback) {
   if (callback)
-    return this._rcall(recipient, name, data, callback);
+    return this._async_rpcall(recipient, name, data, callback);
   let pending = true;
   let result = null;
-  this._rcall(recipient, name, data, (error, data) => {
+  this._async_rpcall(recipient, name, data, (error, data) => {
     if (error)
       throw error;
     pending = false;
     result = data;
   });
   while (pending) {
-    let res = this._emitter.request("GET", this._login+"/"+this._expect.toString(36), {}, null);
-    if (res[0] || res[1] !== 200)
-      throw res[0] || new Error(res[1]+" ("+res[2]+")");
-    if (res[4] !== "") {
-      res[4].split("\n").forEach(this._online);
+    const [status, message, headers, body] = this._antena.request("GET", "/"+this.alias+"/"+this._expect.toString(36), {}, null);
+    if (status !== 200)
+      throw new Error(status+" ("+message+")");
+    if (body !== "") {
+      const meteors = body.split("\n");
+      for (let index = 0, length=meteors.length; index<length; index++) {
+        this._process_meteor(meteors[index]);
+      }
     }
   }
   return result;
 }
 
-function close (code, reason) {
-  this._con.close(code, reason);
-}
-
-module.exports = (options, callback) => {
-  const login = "/"+options.alias+"/"+options.key;
-  const con = options.emitter.connect(login);
-  con.on("error", callback);
-  con.on("open", () => {
-    con.removeAllListeners("error");
-    con.on("message", (message) => {
-      const index = message.indexOf("/");
-      if (melf._expect === parseInt(message.substring(0, index), 36)) {
-        melf._online(message.substring(index+1));
-      }
-    });
-    con.on("error", (error) => {
-      melf.emit("error", error);
-    });
-    con.on("close", (code, reason) => {
-      melf.emit("close", code, reason);
-    });
-    const mformat = MeteorFormat(options.format);
-    const melf = new Events();
-    Object.assign(melf, Agent((recipient, message) => {
-      con.send(recipient+"/"+mformat.stringify(message));
-    }));
-    melf._receive = melf.receive;
-    melf._rcall = melf.rcall;
-    melf._expect = 0;
-    melf._con = con;
-    melf._emitter = options.emitter;
-    melf._login = login;
-    melf._online = (line) => {
-      melf._expect++;
-      if (melf._expect > max)
-        melf._expect = 0;
-      const index = line.indexOf("/");
-      melf._receive(line.substring(0, index), mformat.parse(line.substring(index+1)));
+module.exports = (antena, alias, callback) => {
+  const socket = antena.connect("/"+alias);
+  socket.onerror = (event) => { callback(new Error(event.message || "Could not connect to: "+event.target.URL)) };
+  socket.onmessage = (event) => {
+    socket.onmessage = onmessage;
+    socket.onerror = onerror;
+    socket.onclose = onclose;
+    socket._melf = {
+      rpcall: rpcall,
+      rprocedures: Object.create(null),
+      alias: event.data,
+      _socket: socket,
+      _callbacks: Object.create(null),
+      _process_meteor: _process_meteor,
+      _async_rpcall: _async_rpcall,
+      _expect: 0,
+      _antena: antena
     };
-    melf.alias = options.alias;
-    melf.close = close;
-    melf.rcall = rcall;
-    delete melf.receive;
-    callback(null, melf);
-  });
+    callback(null, socket._melf);
+  };
 };
