@@ -11,6 +11,7 @@
   "license": "MIT",
   "dependencies": {
     "antena": "1.0.1",
+    "minimist": "^1.2.0",
     "ws": "^5.2.0"
   },
   "main": "main.js",

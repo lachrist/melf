@@ -1,6 +1,6 @@
-# melf <img src="melf.png" align="right" alt="melf-logo" title="Melf's Minute Meteors"/>
+# Melf <img src="melf.png" align="right" alt="melf-logo" title="Melf's Minute Meteors"/>
 
-(A)Synchronous remote procedure calls for JavaScript processes.
+[npm module](https://www.npmjs.com/package/melf) to perform (a)synchronous remote procedure calls for JavaScript processes.
 To avoid deadlocks, synchronous remote procedure calls can be interleaved (only) by locally declared remote procedures.
 
 ## Client API
@@ -40,26 +40,31 @@ To avoid deadlocks, synchronous remote procedure calls can be interleaved (only)
 
 If Melf is installed globally, a Melf server can be launched with:
 ```txt
-> melf 8080
+> melf --port 8080
 Listening on { address: '::', family: 'IPv6', port: 8080 }
 ```
 
-### `require("melf/server/attach")(server, prefix)`
+### `require("melf/server/attach")(server, prefix, log)`
 
+* `server :: http.Server | https.Server`
 * `prefix :: string | undefined`
   Only http requests whose path starts with this prefix will be handled
-* `server :: http.Server | https.Server`
+* `log :: function | undefined`
+  A log function to trace the communication between melf's instances.
 
-### `pool = require("melf/server/pool")()`
+### `pool = require("melf/server/pool")(log)`
 
-### `pool.pull(path, response)`
+* `log :: function | undefined`
+  A log function to trace the communication between melf's instances.
+
+### `pool.request(path, response)`
 
 * `path :: string`
-  The path of the incoming http request
+  The path of the incoming http request as send by the antena
 * `response :: http.ServerResponse`
 
 ### `pool.connect(path, websocket)`
 
 * `path :: string`
-  The path of the incoming http request which initiate the handshake
+  The path of the incoming http request which initiate the handshake as send by the antena
 * `websocket :: ws.WebSocket`

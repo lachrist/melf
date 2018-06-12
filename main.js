@@ -77,7 +77,7 @@ function _async_rpcall (recipient, name, data, callback) {
     var token = Math.random().toString(36).substring(2, 10);
   } while (token in this._callbacks);
   this._callbacks[token] = callback;
-  this._socket.send(recipient+"/"+this.alias+"/"+token+"/"+name+"/"+JSON.stringify(data));
+  this._socket.send(recipient+"/"+this.alias+"/"+token+"/"+name+"/"+JSON.stringify(data === void 0 ? null : data));
 }
 
 function rpcall (recipient, name, data, callback) {

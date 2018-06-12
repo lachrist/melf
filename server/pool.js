@@ -1,15 +1,13 @@
 const SplitIn = require("../split-in.js");
 
-const log = (message) => (console.log(message), message);
-
 const max = parseInt("zzzz", 36);
 
-module.exports = () => {
+module.exports = (log) => {
 
   const websockets = {};
 
   function onmessage (message) {
-    log(this._melf_alias+" >> "+message);
+    log && log(this._melf_alias, ">>", message);
     const [recipient, meteor] = SplitIn(message, "/", 2);
     if (meteor[0] === "/") {
       const [,echo] = meteor.split("/", 2);
@@ -29,7 +27,7 @@ module.exports = () => {
   };
 
   function onclose (code, reason) {
-    log(this._melf_alias+" DISCONNECTED "+code+" "+reason);
+    log && log(this._melf_alias, "DISCONNECTED", code, reason);
     delete websockets[this._melf_alias];
     const error = new Error("Recipient disconnected: "+reason+" ("+code+")");
     const output = JSON.stringify([error.message, error.stack]);
@@ -48,12 +46,13 @@ module.exports = () => {
     }
     if (Array.isArray(this._melf_buffer)) {
       this._melf_buffer.push(meteor);
-      this.send(this._melf_counter.toString(36)+"/"+meteor);
-      log(this._melf_alias+" << "+this._melf_counter.toString(36)+"/"+meteor);
+      const message = this._melf_counter.toString(36)+"/"+meteor
+      this.send(message);
+      log && log(this._melf_alias, "<<", message);
     } else {
-      buffer.end(meteor);
-      log(this._melf_alias+" "+meteor);
-      buffer = [];
+      this._melf_buffer.end(meteor);
+      log && log(this._melf_alias, meteor);
+      this._melf_buffer = [];
     }
     this._melf_counter++;
     if (this._melf_counter > max) {
@@ -72,7 +71,7 @@ module.exports = () => {
       }
       websockets[alias] = websocket;
       websocket.send(alias);
-      log(alias+" CONNECTED");
+      log && log(alias, "CONNECTED");
       websocket._melf_alias = alias;
       websocket._melf_push = _melf_push;
       websocket._melf_buffer = [];
@@ -81,7 +80,7 @@ module.exports = () => {
       websocket.on("close", onclose);
       websocket.on("message", onmessage);
     },
-    pull: (path, response) => {
+    request: (path, response) => {
       let [,alias, expect] = path.split("/");
       expect = parseInt(expect, 36);
       if (alias in websockets) {
@@ -92,17 +91,18 @@ module.exports = () => {
             websockets[alias]._melf_buffer = response;
           } else {
             const buffer = websockets[alias]._melf_buffer;
-            response.end(buffer.slice(buffer.length-slice).join("\n"));
-            log(alias+"\n"+buffer.slice(buffer.length-slice).join("\n  "));
+            const body = buffer.slice(buffer.length-slice).join("\n");
+            response.end(body);
+            log && log(alias, body);
             websockets[alias]._melf_buffer = [];
           }
         } else {
-          log("WARNING "+alias+" already waiting");
+          log && log("WARNING", alias, "already waiting");
           response.writeHead(400, "Already waiting");
           response.end();
         }
       } else {
-        log("WARNING "+alias+" not connected");
+        log && log("WARNING", alias, "not connected");
         response.writeHead(400, "Not connected");
       }
     }
