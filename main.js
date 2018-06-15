@@ -61,12 +61,12 @@ function _process_meteor (meteor) {
     (this.rprocedures[name]||remote_procedure_not_found)(origin, JSON.parse(input), (error, data) => {
       if (error) {
         if (error instanceof Error) {
-          self._socket.send(origin+"//"+token+"/e/"+JSON.stringify([error.message, error.stack]));
+          self._websocket.send(origin+"//"+token+"/e/"+JSON.stringify([error.message, error.stack]));
         } else {
-          self._socket.send(origin+"//"+token+"/f/"+JSON.stringify(error));
+          self._websocket.send(origin+"//"+token+"/f/"+JSON.stringify(error));
         }
       } else {
-        self._socket.send(origin+"//"+token+"/s/"+JSON.stringify(data));
+        self._websocket.send(origin+"//"+token+"/s/"+JSON.stringify(data));
       }
     });
   }
@@ -77,7 +77,7 @@ function _async_rpcall (recipient, name, data, callback) {
     var token = Math.random().toString(36).substring(2, 10);
   } while (token in this._callbacks);
   this._callbacks[token] = callback;
-  this._socket.send(recipient+"/"+this.alias+"/"+token+"/"+name+"/"+JSON.stringify(data === void 0 ? null : data));
+  this._websocket.send(recipient+"/"+this.alias+"/"+token+"/"+name+"/"+JSON.stringify(data === void 0 ? null : data));
 }
 
 function rpcall (recipient, name, data, callback) {
@@ -106,23 +106,23 @@ function rpcall (recipient, name, data, callback) {
 }
 
 module.exports = (antena, alias, callback) => {
-  const socket = antena.connect("/"+alias);
-  socket.onerror = (event) => { callback(new Error(event.message || "Could not connect to: "+event.target.URL)) };
-  socket.onmessage = (event) => {
-    socket.onmessage = onmessage;
-    socket.onerror = onerror;
-    socket.onclose = onclose;
-    socket._melf = {
+  const websocket = antena.WebSocket("/"+alias);
+  websocket.onerror = (event) => { callback(new Error(event.message || "Could not connect to: "+event.target.URL)) };
+  websocket.onmessage = (event) => {
+    websocket.onmessage = onmessage;
+    websocket.onerror = onerror;
+    websocket.onclose = onclose;
+    websocket._melf = {
       rpcall: rpcall,
       rprocedures: Object.create(null),
       alias: event.data,
-      _socket: socket,
+      _websocket: websocket,
       _callbacks: Object.create(null),
       _process_meteor: _process_meteor,
       _async_rpcall: _async_rpcall,
       _expect: 0,
       _antena: antena
     };
-    callback(null, socket._melf);
+    callback(null, websocket._melf);
   };
 };

@@ -44,11 +44,9 @@ If Melf is installed globally, a Melf server can be launched with:
 Listening on { address: '::', family: 'IPv6', port: 8080 }
 ```
 
-### `require("melf/server/attach")(server, prefix, log)`
+### `require("melf/server/subscribe")(server, log)`
 
 * `server :: http.Server | https.Server`
-* `prefix :: string | undefined`
-  Only http requests whose path starts with this prefix will be handled
 * `log :: function | undefined`
   A log function to trace the communication between melf's instances.
 
