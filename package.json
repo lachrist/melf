@@ -1,7 +1,7 @@
 {
   "name": "melf",
   "description": "(A)Synchronous remote procedure calls for JavaScript processes",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "author": {
     "name": "Laurent Christophe",
     "email": "lachrist@vub.ac.be"
