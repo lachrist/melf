@@ -44,25 +44,19 @@ If Melf is installed globally, a Melf server can be launched with:
 Listening on { address: '::', family: 'IPv6', port: 8080 }
 ```
 
-### `require("melf/server/subscribe")(server, log)`
-
-* `server :: http.Server | https.Server`
-* `log :: function | undefined`
-  A log function to trace the communication between melf's instances.
-
-### `pool = require("melf/server/pool")(log)`
+### `handlers = require("melf/server/handlers")(log)`
 
 * `log :: function | undefined`
   A log function to trace the communication between melf's instances.
 
-### `pool.request(path, response)`
+### `handlers.request(request, response)`
 
-* `path :: string`
-  The path of the incoming http request as send by the antena
+* `request :: http.IncomingMessage`
 * `response :: http.ServerResponse`
 
-### `pool.connect(path, websocket)`
+### `handlers.upgrade(request, socket, head)`
 
-* `path :: string`
-  The path of the incoming http request which initiate the handshake as send by the antena
-* `websocket :: ws.WebSocket`
+* `request :: http.IncomingMessage`
+* `socket :: net.Socket`
+* `head :: buffer`
+
