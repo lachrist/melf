@@ -66,7 +66,7 @@ module.exports = (logger) => {
   return {
     upgrade: (request, socket, head) => {
       wss.handleUpgrade(request, socket, head, (websocket) => {
-        const alias = request.url.substring(1);
+        let alias = request.url.substring(1);
         if (alias in websockets) {
           let counter = 0;
           while (alias+"-"+counter in websockets)
