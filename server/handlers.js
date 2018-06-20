@@ -53,7 +53,9 @@ module.exports = (logger) => {
       this.send(message);
       logger && logger.log(this._melf_alias, "<<", message);
     } else {
-      this._melf_buffer.end(meteor);
+      const body = Buffer.from(meteor, "utf8");
+      this._melf_buffer.writeHead(200, "Ok", {"Content-Length":body.length, "Content-Type":"text/plain; charset=utf8"});
+      this._melf_buffer.end(body);
       logger && logger.log(this._melf_alias, meteor);
       this._melf_buffer = [];
     }
@@ -96,20 +98,20 @@ module.exports = (logger) => {
             websockets[alias]._melf_buffer = response;
           } else {
             const buffer = websockets[alias]._melf_buffer;
-            const body = buffer.slice(buffer.length-slice).join("\n");
-            response.writeHead(200, "Ok", {"content-length":body.length, "content-type":"text/plain; charset=utf8"});
+            const body = Buffer.from(buffer.slice(buffer.length-slice).join("\n"), "utf8");
+            response.writeHead(200, "Ok", {"Content-Length":body.length, "Content-Type":"text/plain; charset=utf8"});
             response.end(body);
-            logger && logger.log(alias, body);
+            logger && logger.log(alias, body.toString("utf8"));
             websockets[alias]._melf_buffer = [];
           }
         } else {
           logger && logger.log("WARNING", alias, "already waiting");
-          response.writeHead(400, "Already waiting", {"content-length": 0, "content-type":"text/plain; charset=utf8"});
+          response.writeHead(400, "Already waiting", {"Content-Length": 0, "Content-Type":"text/plain; charset=utf8"});
           response.end();
         }
       } else {
         logger && logger.log("WARNING", alias, "not connected");
-        response.writeHead(400, "Not connected", {"content-length": 0, "content-type":"text/plain; charset=utf8"});
+        response.writeHead(400, "Not connected", {"Content-Length": 0, "Content-Type":"text/plain; charset=utf8"});
         response.end();
       }
     }
