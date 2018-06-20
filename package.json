@@ -13,8 +13,8 @@
     "antena": "1.1.2"
   },
   "dependencies": {
-    "minimist": "1.*",
-    "ws": "5.*"
+    "minimist": "1.x",
+    "ws": "5.x"
   },
   "main": "main.js",
   "bin": "server/bin.js",
