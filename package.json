@@ -10,11 +10,11 @@
   "homepage": "http://github.com/lachrist/melf",
   "license": "MIT",
   "devDependencies": {
-    "antena": "1.1.2"
+    "antena": "1.1.3"
   },
   "dependencies": {
-    "minimist": "1.x",
-    "ws": "5.x"
+    "minimist": "^1.2.0",
+    "ws": "^5.2.0"
   },
   "main": "main.js",
   "bin": "server/bin.js",
