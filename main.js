@@ -113,6 +113,7 @@ module.exports = (antena, alias, callback) => {
     websocket.onerror = onerror;
     websocket.onclose = onclose;
     websocket._melf = {
+      platform: antena.platform,
       rpcall: rpcall,
       rprocedures: Object.create(null),
       alias: event.data,

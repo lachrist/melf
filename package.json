@@ -1,7 +1,7 @@
 {
   "name": "melf",
   "description": "(A)Synchronous remote procedure calls for JavaScript processes",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "author": {
     "name": "Laurent Christophe",
     "email": "lachrist@vub.ac.be"
@@ -10,7 +10,7 @@
   "homepage": "http://github.com/lachrist/melf",
   "license": "MIT",
   "devDependencies": {
-    "antena": "1.1.1"
+    "antena": "1.1.2"
   },
   "dependencies": {
     "minimist": "^1.2.0",
