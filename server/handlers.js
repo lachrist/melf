@@ -97,18 +97,20 @@ module.exports = (logger) => {
           } else {
             const buffer = websockets[alias]._melf_buffer;
             const body = buffer.slice(buffer.length-slice).join("\n");
+            response.writeHead(200, "Ok", {"content-length":body.length, "content-type":"text/plain; charset=utf8"});
             response.end(body);
             logger && logger.log(alias, body);
             websockets[alias]._melf_buffer = [];
           }
         } else {
-          lloggerog && logger.log("WARNING", alias, "already waiting");
-          response.writeHead(400, "Already waiting");
+          logger && logger.log("WARNING", alias, "already waiting");
+          response.writeHead(400, "Already waiting", {"content-length": 0, "content-type":"text/plain; charset=utf8"});
           response.end();
         }
       } else {
         logger && logger.log("WARNING", alias, "not connected");
-        response.writeHead(400, "Not connected");
+        response.writeHead(400, "Not connected", {"content-length": 0, "content-type":"text/plain; charset=utf8"});
+        response.end();
       }
     }
   };
