@@ -48,19 +48,15 @@ module.exports = (logger) => {
       this._melf_pendings.push(origin+"/"+token);
     }
     if (Array.isArray(this._melf_buffer)) {
+      if (!this._melf_buffer.length)
+        this.send("ping");
       this._melf_buffer.push(meteor);
-      this.send(this._melf_counter.toString(36)+"/"+meteor);
-      logger && logger.log(this._melf_alias, "receive", this._melf_counter.toString(36), meteor);
     } else {
       const body = Buffer.from(meteor, "utf8");
       this._melf_buffer.writeHead(200, "Ok", {"Content-Length":body.length, "Content-Type":"text/plain; charset=utf8"});
       this._melf_buffer.end(body);
       this._melf_buffer = [];
       logger && logger.log(this._melf_alias, "delayed-pull-response", meteor);
-    }
-    this._melf_counter++;
-    if (this._melf_counter > max) {
-      this._melf_counter = 0
     }
   };
 
@@ -80,29 +76,24 @@ module.exports = (logger) => {
         websocket._melf_alias = alias;
         websocket._melf_push = _melf_push;
         websocket._melf_buffer = [];
-        websocket._melf_counter = 0;
         websocket._melf_pendings = [];
         websocket.on("close", onclose);
         websocket.on("message", onmessage);
       });
     },
     request: (request, response) => {
-      let [,alias, expect] = request.url.split("/");
-      expect = parseInt(expect, 36);
+      let [,alias] = request.url.split("/");
+      logger && logger.log(alias, "pull-request");
       if (alias in websockets) {
         if (Array.isArray(websockets[alias]._melf_buffer)) {
-          logger && logger.log(alias, "pull-request", expect.toString(36));
-          const counter = websockets[alias]._melf_counter;
-          const slice = (counter>=expect) ? (counter-expect) : (counter-expect+max+1);
-          if (slice === 0) {
-            websockets[alias]._melf_buffer = response;
-          } else {
-            const buffer = websockets[alias]._melf_buffer;
-            const body = Buffer.from(buffer.slice(buffer.length-slice).join("\n"), "utf8");
+          if (websockets[alias]._melf_buffer.length) {
+            const body = Buffer.from(websockets[alias]._melf_buffer.join("\n"), "utf8");
             response.writeHead(200, "Ok", {"Content-Length":body.length, "Content-Type":"text/plain; charset=utf8"});
             response.end(body);
             logger && logger.log(alias, "immediate-pull-response", body.toString("utf8"));
             websockets[alias]._melf_buffer = [];
+          } else {
+            websockets[alias]._melf_buffer = response;
           }
         } else {
           logger && logger.error(alias, "ALREADY WAITING");
@@ -110,7 +101,7 @@ module.exports = (logger) => {
           response.end();
         }
       } else {
-        logger && logger.error("WARNING", alias, "not connected");
+        logger && logger.error(alias, "NOT CONNECTED");
         response.writeHead(400, "Not connected", {"Content-Length": 0, "Content-Type":"text/plain; charset=utf8"});
         response.end();
       }
