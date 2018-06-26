@@ -1,9 +1,11 @@
 const SplitIn = require("./split-in.js");
 
+const max = parseInt("zzzzzzzz", 36);
+
 const noop = () => {};
 
 const onmessage = (event) => {
-  event.target._melf._pull()
+  event.target._melf._process_meteor(event.data);
 };
 
 const onerror = (event) => {
@@ -19,55 +21,60 @@ const remote_procedure_not_found = (origin, input, callback) => {
 };
 
 function _async_rpcall (recipient, name, data, callback) {
-  do {
-    var token = Math.random().toString(36).substring(2, 10);
-  } while (token in this._callbacks);
+  this._counter++;
+  if (this._counter === max)
+    this._counter = 0;
+  const token = this._counter.toString(36);
   this._callbacks[token] = callback;
   this._websocket.send(recipient+"/"+this.alias+"/"+token+"/"+name+"/"+JSON.stringify(data === void 0 ? null : data));
 }
 
-function _pull () {
-  const [status, message, headers, body] = this._antena.request("GET", "/"+this.alias, {}, null);
-  if (status !== 200)
-    throw new Error(status+" ("+message+")");
-  if (body !== "") {
-    const meteors = body.split("\n");
-    for (let index = 0, length=meteors.length; index<length; index++) {
-      if (meteors[index][0] === "/") {
-        const [,echo, hint, output] = SplitIn(meteors[index], "/", 4);
-        if (echo in this._callbacks) {
-          callback = this._callbacks[echo];
-          delete this._callbacks[echo];
-          if (hint === "s") {
-            callback(null, JSON.parse(output));
-          } else if (hint === "f") {
-            callback(JSON.parse(output));
-          } else if (hint === "e") {
-            const [message, stack] = JSON.parse(output);
-            const error = new Error(message);
-            error.stack = stack;
-            callback(error);
-          } else {
-            console.warn("Illegal hint: "+hint);
-          }
+function _process_meteor (meteor) {
+  if (meteor[0] === "/") {
+    const [,echo, hint, output] = SplitIn(meteor, "/", 4);
+    const index = this._done.indexOf(echo);
+    if (index === -1) {
+      this._done.push(echo);
+      if (echo in this._callbacks) {
+        callback = this._callbacks[echo];
+        delete this._callbacks[echo];
+        if (hint === "s") {
+          callback(null, JSON.parse(output));
+        } else if (hint === "f") {
+          callback(JSON.parse(output));
+        } else if (hint === "e") {
+          const [message, stack] = JSON.parse(output);
+          const error = new Error(message);
+          error.stack = stack;
+          callback(error);
         } else {
-          console.warn("Unmatched echo: "+echo);
+          console.warn("Illegal hint: "+hint);
         }
       } else {
-        const [origin, token, name, input] = SplitIn(meteors[index], "/", 4);
-        const self = this;
-        (this.rprocedures[name]||remote_procedure_not_found)(origin, JSON.parse(input), (error, data) => {
-          if (error) {
-            if (error instanceof Error) {
-              self._websocket.send(origin+"//"+token+"/e/"+JSON.stringify([error.message, error.stack]));
-            } else {
-              self._websocket.send(origin+"//"+token+"/f/"+JSON.stringify(error));
-            }
-          } else {
-            self._websocket.send(origin+"//"+token+"/s/"+JSON.stringify(data));
-          }
-        });
+        console.warn("Unmatched echo: "+echo);
       }
+    } else {
+      this._done.splice(index, 1);
+    }
+  } else {
+    const [origin, token, name, input] = SplitIn(meteor, "/", 4);
+    const index = this._done.indexOf(origin+"/"+token);
+    if (index === -1) {
+      this._done.push(origin+"/"+token);
+      const self = this;
+      (this.rprocedures[name]||remote_procedure_not_found)(origin, JSON.parse(input), (error, data) => {
+        if (error) {
+          if (error instanceof Error) {
+            self._websocket.send(origin+"//"+token+"/e/"+JSON.stringify([error.message, error.stack]));
+          } else {
+            self._websocket.send(origin+"//"+token+"/f/"+JSON.stringify(error));
+          }
+        } else {
+          self._websocket.send(origin+"//"+token+"/s/"+JSON.stringify(data));
+        }
+      });
+    } else {
+      this._done.splice(index, 1);
     }
   }
 }
@@ -83,8 +90,17 @@ function rpcall (recipient, name, data, callback) {
     pending = false;
     result = data;
   });
-  while (pending)
-    this._pull();
+  while (pending) {
+    const [status, message, headers, body] = this._antena.request("GET", "/"+this.alias, {}, null);
+    if (status !== 200)
+      throw new Error(status+" ("+message+")");
+    if (body === "")
+      throw new Error("Empty pull body");
+    const meteors = body.split("\n");
+    for (let index = 0, length=meteors.length; index<length; index++) {
+      this._process_meteor(meteors[index]);
+    }
+  }
   return result;
 }
 
@@ -102,7 +118,9 @@ module.exports = (antena, alias, callback) => {
       _websocket: websocket,
       _callbacks: Object.create(null),
       _async_rpcall: _async_rpcall,
-      _pull: _pull,
+      _counter: 0,
+      _process_meteor: _process_meteor,
+      _done: [],
       _antena: antena
     };
     callback(null, websocket._melf);
