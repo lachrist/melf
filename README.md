@@ -5,11 +5,10 @@ To avoid deadlocks, synchronous remote procedure calls can be interleaved (only)
 
 ## Client API
 
-### `require("melf")(antena, alias, (error, melf) => {...}))`
+### `melf = require("melf")(address, alias)`
 
-* `antena :: antena.Antena`
+* `address :: string | object | melf.Orchestrator`
 * `alias :: string`
-* `error :: Error`
 * `melf :: melf.Melf`
 
 ### `output = melf.rpcall(recipient, rpname, input)`
@@ -44,19 +43,12 @@ If Melf is installed globally, a Melf server can be launched with:
 Listening on { address: '::', family: 'IPv6', port: 8080 }
 ```
 
-### `handlers = require("melf/server/handlers")(log)`
+### `orchestrator = require("melf/orchestrator")(log)`
 
-* `log :: function | undefined`
-  A log function to trace the communication between melf's instances.
+* `log(origin, recipient, message)`
+  An optional log function to trace the communication between melf's instances.
 
-### `handlers.request(request, response)`
+### `orchestrator.attach(server, splitter)`
 
-* `request :: http.IncomingMessage`
-* `response :: http.ServerResponse`
-
-### `handlers.upgrade(request, socket, head)`
-
-* `request :: http.IncomingMessage`
-* `socket :: net.Socket`
-* `head :: buffer`
-
+* `server :: net.Server | http.Server | https.Server`
+* `splitter :: string`

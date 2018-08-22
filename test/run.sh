@@ -1,8 +1,7 @@
-rm /tmp/melf.sock
-node ../server/bin.js --port /tmp/melf.sock --log &
-SERVER_PID=$!
+rm /tmp/melf-test.sock
+node server.js /tmp/melf-test.sock &
+PID=$!
 sleep 1
-node alice.js /tmp/melf.sock &
-sleep 1
-node bob.js /tmp/melf.sock
-kill $SERVER_PID
+node alice.js /tmp/melf-test.sock &
+node bob.js /tmp/melf-test.sock
+kill $PID
