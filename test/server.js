@@ -4,5 +4,5 @@ const orchestrator = MelfOrchestrator((origin, recipient, message) => {
   console.log(origin+" >> "+recipient+": "+message);
 });
 const server = Net.createServer();
-orchestrator.attach(server);
+server.on("connection", orchestrator.ConnectionListener());
 server.listen(process.argv[process.argv.length-1]);

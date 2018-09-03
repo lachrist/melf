@@ -45,10 +45,4 @@ Listening on { address: '::', family: 'IPv6', port: 8080 }
 
 ### `orchestrator = require("melf/orchestrator")(log)`
 
-* `log(origin, recipient, message)`
-  An optional log function to trace the communication between melf's instances.
-
-### `orchestrator.attach(server, splitter)`
-
-* `server :: net.Server | http.Server | https.Server`
-* `splitter :: string`
+* `orchestrator :: antena.Receptor`

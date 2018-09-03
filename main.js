@@ -3,7 +3,7 @@ const AntenaEmitter = require("antena/emitter");
 
 const max = parseInt("zzzzzz", 36);
 
-function onmessage (message) {
+function onpush (message) {
   this._melf._process_meteor(message);
 };
 
@@ -13,7 +13,7 @@ function _async_rpcall (recipient, name, data, callback) {
     this._counter = 1;
   const token = this._counter.toString(36);
   this._callbacks[token] = callback;
-  this._emitter.send(recipient+"/"+this.alias+"#"+token+"/"+JSON.stringify([name, data]));
+  this._emitter.push(recipient+"/"+this.alias+"#"+token+"/"+JSON.stringify([name, data]));
 }
 
 const localize = (alias) => (line) => line.startsWith("    at ") ?
@@ -62,7 +62,7 @@ function _process_meteor (meteor) {
           kind = "$";
           data = result;
         }
-        this._emitter.send(prefix+"/"+kind+"#"+token+"/"+JSON.stringify(data));
+        this._emitter.push(prefix+"/"+kind+"#"+token+"/"+JSON.stringify(data));
       };
       if (body[0] in this.rprocedures) {
         this.rprocedures[body[0]](prefix, body[1], callback);
@@ -93,7 +93,7 @@ function rpcall (recipient, name, data, callback) {
     result = data;
   });
   while (pending) {
-    const meteors = this._emitter.request("").split("\n");
+    const meteors = this._emitter.pull("").split("\n");
     for (let index = 0, length=meteors.length; index<length; index++) {
       this._process_meteor(meteors[index]);
     }
@@ -114,6 +114,6 @@ module.exports = (address, alias) => {
     alias: alias
   }
   melf._emitter._melf = melf;
-  melf._emitter.onmessage = onmessage;
+  melf._emitter.onpush = onpush;
   return melf;
 };
