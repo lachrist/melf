@@ -38,11 +38,16 @@ To avoid deadlocks, synchronous remote procedure calls can be interleaved (only)
 ## Server API
 
 If Melf is installed globally, a Melf server can be launched with:
+
 ```txt
 > melf --port 8080
 Listening on { address: '::', family: 'IPv6', port: 8080 }
 ```
 
-### `orchestrator = require("melf/orchestrator")(log)`
+### `orchestrator = require("melf/orchestrator")([logger])`
 
 * `orchestrator :: antena.Receptor`
+* `logger(origin, recipient, meteor)`
+  * `origin :: string` 
+  * `recipient :: string`
+  * `meteor :: string`

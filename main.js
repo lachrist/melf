@@ -85,8 +85,8 @@ function rpcall (recipient, name, data, callback) {
       error.stack = (
         error.name + ": " +
         error.message + "\n" +
-        (new Error("foo")).stack.substring("Error: foo\n".length).split("\n").map(localize(this.alias)).join("\n") + "\n" +
-        error.stack.substring(error.name.length+2+error.message.length+1));
+        error.stack.substring(error.name.length+2+error.message.length+1) + "\n" +
+        (new Error("foo")).stack.substring("Error: foo\n".length).split("\n").map(localize(this.alias)).join("\n"));
       throw error;
     }
     pending = false;
