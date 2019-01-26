@@ -18,7 +18,7 @@ To avoid deadlocks, synchronous remote procedure calls can be interleaved (only)
 * `input :: JSON`
 * `output :: JSON`
 
-### `melf.rpcall(recipient, rpname, (error, output) => {...})`
+### `melf.rpcall(recipient, rpname, input, (error, output) => {...})`
 
 * `recipient :: string`
 * `rpname :: string`
