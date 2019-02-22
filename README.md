@@ -5,11 +5,13 @@ To avoid deadlocks, synchronous remote procedure calls can be interleaved (only)
 
 ## Client API
 
-### `melf = require("melf")(address, alias)`
+### `require("melf")(address, alias, callback)`
 
 * `address :: string | object | melf.Receptor`
 * `alias :: string`
-* `melf :: melf.Melf`
+* `callback(error, melf)`
+  * `error :: Error | null`
+  * `melf :: melf.Melf`
 
 ### `output = melf.rpcall(recipient, rpname, input)`
 
