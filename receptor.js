@@ -3,7 +3,7 @@ const AntenaReceptor = require("antena/receptor");
 
 const default_logger = (origin, recipient, meteor) => {
   console.log(origin+" >> "+recipient+": "+meteor);
-}
+};
 
 module.exports = (logger) => {
   const receptor = AntenaReceptor();
@@ -11,18 +11,18 @@ module.exports = (logger) => {
   if (logger)
     receptor._melf_logger = typeof logger === "function" ? logger : default_logger;
   receptor._melf_callbacks = Object.create(null);
-  receptor.onpush = onpush;
-  receptor.onpull = onpull;
+  receptor.onmessage = onmessage;
+  receptor.onrequest = onrequest;
   return receptor;
 };
 
-function onpush (origin, message) {
+function onmessage (origin, message) {
   const index = message.indexOf("/");
   const recipient = message.substring(0, index);
   const meteor = message.substring(index+1);
   if ("_melf_logger" in this)
     this._melf_logger(origin, recipient, meteor);
-  this.push(recipient, meteor);
+  this.send(recipient, meteor);
   if (this._melf_callbacks[recipient]) {
     this._melf_callbacks[recipient](meteor);
     this._melf_callbacks[recipient] = null;
@@ -33,7 +33,7 @@ function onpush (origin, message) {
   }
 }
 
-function onpull (origin, query, callback) {
+function onrequest (origin, request, callback) {
   if (this._melf_pendings[origin] && this._melf_pendings[origin].length) {
     callback(this._melf_pendings[origin].join("\n"));
     this._melf_pendings[origin].length = 0;

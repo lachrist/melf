@@ -3,9 +3,17 @@ const AntenaEmitter = require("antena/emitter");
 
 const max = parseInt("zzzzzz", 36);
 
-function onpush (message) {
+function onmessage ({data:message}) {
   this._melf._process_meteor(message);
-};
+}
+
+function signal (error) {
+  throw error;
+}
+
+function onerror (error) {
+  this._melf.onerror(error);
+}
 
 function _async_rpcall (recipient, name, data, callback) {
   this._counter++;
@@ -13,7 +21,7 @@ function _async_rpcall (recipient, name, data, callback) {
     this._counter = 1;
   const token = this._counter.toString(36);
   this._callbacks[token] = callback;
-  this._emitter.push(recipient+"/"+this.alias+"#"+token+"/"+JSON.stringify([name, data]));
+  this._emitter.send(recipient+"/"+this.alias+"#"+token+"/"+JSON.stringify([name, data]));
 }
 
 const localize = (alias) => (line) => line.startsWith("    at ") ?
@@ -62,7 +70,7 @@ function _process_meteor (meteor) {
           kind = "$";
           data = result;
         }
-        this._emitter.push(prefix+"/"+kind+"#"+token+"/"+JSON.stringify(data));
+        this._emitter.send(prefix+"/"+kind+"#"+token+"/"+JSON.stringify(data));
       };
       if (body[0] in this.rprocedures) {
         this.rprocedures[body[0]](prefix, body[1], callback);
@@ -93,7 +101,7 @@ function rpcall (recipient, name, data, callback) {
     result = data;
   });
   while (pending) {
-    const meteors = this._emitter.pull("").split("\n");
+    const meteors = this._emitter.request("").split("\n");
     for (let index = 0, length=meteors.length; index<length; index++) {
       this._process_meteor(meteors[index]);
     }
@@ -101,19 +109,25 @@ function rpcall (recipient, name, data, callback) {
   return result;
 }
 
-module.exports = (address, alias) => {
-  const melf = {
-    _callbacks: Object.create(null),
-    _async_rpcall: _async_rpcall,
-    _counter: 0,
-    _process_meteor: _process_meteor,
-    _done: [],
-    _emitter: AntenaEmitter(address, alias),
-    rpcall: rpcall,
-    rprocedures: Object.create(null),
-    alias: alias
-  }
-  melf._emitter._melf = melf;
-  melf._emitter.onpush = onpush;
-  return melf;
+module.exports = (address, alias, callback) => {
+  const emitter = AntenaEmitter(address, alias);
+  emitter.onerror = callback;
+  emitter.onopen = () => {
+    const melf = {
+      _callbacks: {__proto__:null},
+      _async_rpcall: _async_rpcall,
+      _counter: 0,
+      _process_meteor: _process_meteor,
+      _done: [],
+      _emitter: emitter,
+      onerror: signal,
+      rpcall: rpcall,
+      rprocedures: {__proto__:null},
+      alias: alias
+    }
+    emitter._melf = melf;
+    emitter.onerror = (error) => { throw error };
+    emitter.onmessage = onmessage;
+    callback(null, melf)
+  };
 };
