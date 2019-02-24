@@ -1,5 +1,5 @@
 
-const Melf = require("../main.js");
+const Melf = require("../lib/main.js");
 Melf(process.argv[process.argv.length-1], "bob", (error, melf) => {
   // RProcedures can be executed in the middle of a synchronous rcall!
   melf.rprocedures.echo = (origin, data, callback) => {

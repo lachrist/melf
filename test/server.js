@@ -1,5 +1,5 @@
 const Net = require("net");
-const MelfReceptor = require("../receptor.js");
+const MelfReceptor = require("../lib/receptor.js");
 const receptor = MelfReceptor((origin, recipient, message) => {
   console.log(origin+" >> "+recipient+": "+message);
 });
