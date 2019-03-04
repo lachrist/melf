@@ -8,7 +8,12 @@ Melf(process.argv[process.argv.length-1], "alice", (error, melf) => {
   melf.rprocedures.error = (origin, data, callback) => {
     callback(new Error("Sorry, "+origin+" there is an error..."));
   };
-  melf.onclose = (event) => {
-    console.log(`wasClean: ${event.wasClean}, code: ${event.code}, reason: ${event.reason}`);
+  melf.rprocedures.terminate = (origin, data, callback) => {
+    callback(null, null);
+    melf.terminate((error) => {
+      if (error) {
+        throw error;
+      }
+    });
   };
 });

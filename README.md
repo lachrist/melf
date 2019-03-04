@@ -1,7 +1,7 @@
 # Melf <img src="melf.png" align="right" alt="melf-logo" title="Melf's Minute Meteors"/>
 
 [npm module](https://www.npmjs.com/package/melf) to perform (a)synchronous remote procedure calls for JavaScript processes.
-To avoid deadlocks, synchronous remote procedure calls can be interleaved (only) by locally declared remote procedures.
+Synchronous remote procedure calls can be interleaved (only) by locally declared remote procedures without deadlocks.
 
 ## Client API
 
@@ -25,7 +25,7 @@ To avoid deadlocks, synchronous remote procedure calls can be interleaved (only)
 * `recipient :: string`
 * `rpname :: string`
 * `input :: JSON`
-* `error :: Error`
+* `error :: Error | null`
 * `output :: JSON`
 
 ### `melf.rprocedures[rpname] = (origin, input, callback) => {...}`
@@ -34,8 +34,14 @@ To avoid deadlocks, synchronous remote procedure calls can be interleaved (only)
 * `origin :: string`
 * `input :: JSON`
 * `callback(error, output)`
-  * `error :: Error`
+  * `error :: Error | null`
   * `output :: JSON`
+
+### `melf.terminate((error) => { ... })`
+
+* `error :: Error | null`
+
+### `melf.destroy()`
 
 ## Server API
 
@@ -48,7 +54,7 @@ Listening on { address: '::', family: 'IPv6', port: 8080 }
 
 ### `receptor = require("melf/receptor")([logger])`
 
-* `orchestrator :: antena.Receptor`
+* `receptor :: antena.Receptor`
 * `logger(origin, recipient, meteor)`
   * `origin :: string` 
   * `recipient :: string`

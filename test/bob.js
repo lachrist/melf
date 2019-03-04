@@ -1,4 +1,3 @@
-
 const Melf = require("../lib/main.js");
 Melf(process.argv[process.argv.length-1], "bob", (error, melf) => {
   // RProcedures can be executed in the middle of a synchronous rcall!
@@ -6,29 +5,35 @@ Melf(process.argv[process.argv.length-1], "bob", (error, melf) => {
     console.log("echoing to "+origin);
     callback(null, data);
   };
-  const test = (recipient, rname, data, callback) => {
-    console.log("BEGIN "+recipient+" "+rname);
+  const test = (recipient, rpname, data, callback) => {
+    console.log("BEGIN "+recipient+" "+rpname);
     // Synchronous remote procedure call //
     try {
-      console.log(rname+"-sync-data: "+melf.rpcall(recipient, rname, data));
+      console.log(rpname+"-sync-data: "+melf.rpcall(recipient, rpname, data));
     } catch (error) {
-      console.log(rname+"-sync-error", error.stack);
+      console.log(rpname+"-sync-error", error.stack);
     }
     // Asynchornous remote procedure call //
-    melf.rpcall(recipient, rname, data, (error, data) => {
+    melf.rpcall(recipient, rpname, data, (error, data) => {
       if (error) {
-        console.log(rname+"-async-error", error.stack);
+        console.log(rpname+"-async-error", error.stack);
       } else {
-        console.log(rname+"-async-data: "+data);
+        console.log(rpname+"-async-data: "+data);
       }
-      console.log("END "+recipient+" "+rname);
+      console.log("END "+recipient+" "+rpname);
       callback();
     });
   };
   test("alice", "greeting", "fablabla?", () => {
     test("alice", "error", null, () => {
       test("alice", "greetying", null, () => {
-        process.exit(0);
+        melf.rpcall("alice", "terminate", null, (error) => {
+          melf.terminate((error) => {
+            if (error) {
+              throw error;
+            }
+          });
+        });
       });
     });
   });  
