@@ -2,6 +2,7 @@ const Melf = require("../lib/main.js");
 Melf(process.argv[process.argv.length-1], "alice", (error, melf) => {
   if (error)
     throw error;
+  melf.emitter.catch((error) => { console.log("AliceEmitter", error) });
   melf.rprocedures.greeting = (origin, data, callback) => {
     melf.rpcall(origin, "echo", "Hello "+origin+", you said: "+JSON.stringify(data), callback);
   };
@@ -9,11 +10,7 @@ Melf(process.argv[process.argv.length-1], "alice", (error, melf) => {
     callback(new Error("Sorry, "+origin+" there is an error..."));
   };
   melf.rprocedures.terminate = (origin, data, callback) => {
-    callback(null, null);
-    melf.terminate((error) => {
-      if (error) {
-        throw error;
-      }
-    });
+    melf.emitter.onterminate = () => { callback(null, null) };
+    melf.emitter.terminate();
   };
 });
