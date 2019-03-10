@@ -5,7 +5,7 @@ Melf(process.argv[process.argv.length-1], "bob", (error, melf) => {
     console.log("echoing to "+origin);
     callback(null, data);
   };
-  melf.emitter.catch((error) => { console.log("BobEmitter", error) });
+  melf.catch((error) => { throw error });
   const test = (recipient, rpname, data, callback) => {
     console.log("BEGIN "+recipient+" "+rpname);
     // Synchronous remote procedure call //
@@ -29,7 +29,7 @@ Melf(process.argv[process.argv.length-1], "bob", (error, melf) => {
     test("alice", "error", null, () => {
       test("alice", "greetying", null, () => {
         melf.rpcall("alice", "terminate", null);
-        melf.emitter.terminate();
+        melf.terminate();
       });
     });
   });  

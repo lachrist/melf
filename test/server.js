@@ -1,10 +1,10 @@
 const Net = require("net");
-const MelfReceptor = require("../lib/receptor.js");
-const receptor = MelfReceptor((origin, recipient, message) => {
+const Distributor = require("../lib/distributor.js");
+const distributor = Distributor((origin, recipient, message) => {
   console.log(origin+" >> "+recipient+": "+message);
 });
 const server = Net.createServer();
-server.on("connection", receptor.ConnectionListener());
+server.on("connection", distributor.ConnectionListener());
 server.listen(process.argv[process.argv.length-1]);
 setTimeout(() => {
   server.close();

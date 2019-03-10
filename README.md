@@ -37,25 +37,41 @@ Synchronous remote procedure calls can be interleaved (only) by locally declared
   * `error :: Error | null`
   * `output :: JSON`
 
-### `melf.terminate((error) => { ... })`
-
-* `error :: Error | null`
-
 ### `melf.destroy()`
+
+### `melf.terminate()`
+
+### `melf.onterminate = () => { ... }`
 
 ## Server API
 
-If Melf is installed globally, a Melf server can be launched with:
+### `distributor = require("melf/distributor")(logger)`
 
-```txt
-> melf --port 8080
-Listening on { address: '::', family: 'IPv6', port: 8080 }
-```
-
-### `receptor = require("melf/receptor")([logger])`
-
-* `receptor :: antena.Receptor`
-* `logger(origin, recipient, meteor)`
+* `logger(origin, recipient, meteor) | undefined | boolean`
   * `origin :: string` 
   * `recipient :: string`
   * `meteor :: string`
+* `distributor :: melf.Distributor`
+
+### `listener = orchestrator.ConnectionListener()`
+
+* `listener(net.Socket)`
+
+### `middleware = distributor.RequestMiddleware(splitter)`
+
+* `splitter :: string | undefined`
+* `handled = middleware(request, response, next)`
+  * `request :: http.Request`
+  * `response :: http.Response`
+  * `next()`
+  * `handled :: boolean`
+
+### `middleware = distributor.UpgradeMiddleware(splitter)`
+
+* `splitter :: string | undefined`
+* `handled = middleware(request, socket, head, next)`
+  * `request :: http.Request`
+  * `socket :: net.Socket`
+  * `head :: Buffer`
+  * `next()`
+  * `handled :: boolean`
